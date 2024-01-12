@@ -1,0 +1,33 @@
+version: "3.5"
+services:
+  nats:
+    image: nats:2.9.3
+    ports:
+      - "8222:8222"
+      - "4222:4222"
+    container_name: n1
+    command: "--name N1 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://n1:4245,nats://n2:4245,nats://n3:4245 -p 4222"
+    #command: "--name NATS_PRIMARY --cluster_name NATS --cluster nats://0.0.0.0:6222 --http_port 8222 --js"
+    networks: ["nats"]
+  nats-1:
+    image: nats:2.9.3
+    ports:
+      - "4223:4222"
+    container_name: n2
+    command: "--name N2 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://n1:4245,nats://n2:4245,nats://n3:4245 -p 4222"
+    #command: "--name NATS1 --cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222 --js"
+    networks: ["nats"]
+    depends_on: ["nats"]
+  nats-2:
+    image: nats:2.9.3
+    ports:
+      - "4224:4222"
+    container_name: n3
+    command: "--name N3 --cluster_name JSC --js --sd /data --cluster nats://0.0.0.0:4245 --routes nats://n1:4245,nats://n2:4245,nats://n3:4245 -p 4222"
+    #command: "--name NATS2 --cluster_name NATS --cluster nats://0.0.0.0:6222 --routes=nats://ruser:T0pS3cr3t@nats:6222 --js"
+    networks: ["nats"]
+    depends_on: ["nats"]
+
+networks:
+  nats:
+    name: nats
