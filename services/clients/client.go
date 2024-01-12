@@ -21,7 +21,7 @@ import (
 )
 
 // NewClient constructs the RPC client that does the "heavy lifting" when communicating
-// with remote abide-powered RPC services. It contains all data/logic required to marshal/unmarshal
+// with remote frodo-powered RPC services. It contains all data/logic required to marshal/unmarshal
 // requests/responses as well as communicate w/ the remote service.
 func NewClient(name string, addr string, options ...ClientOption) Client {
 	// Allow either: "foo:8080" or "http://foo:8080" or "https://foo:8080"
@@ -67,7 +67,7 @@ func NewClient(name string, addr string, options ...ClientOption) Client {
 // when building one via NewClient().
 type ClientOption func(*Client)
 
-// Client manages all RPC communication with other abide-powered services. It uses HTTP under the hood,
+// Client manages all RPC communication with other frodo-powered services. It uses HTTP under the hood,
 // so you can supply a custom HTTP client by including WithHTTPClient() when calling your client
 // constructor, NewXxxServiceClient().
 type Client struct {

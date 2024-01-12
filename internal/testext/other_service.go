@@ -2,10 +2,10 @@ package testext
 
 import "context"
 
-//go:generate ../../out/abide server  $GOFILE
-//go:generate ../../out/abide client  $GOFILE
-//go:generate ../../out/abide client  $GOFILE --language=js
-//go:generate ../../out/abide client  $GOFILE --language=dart
+//go:generate ../../out/frodo server  $GOFILE
+//go:generate ../../out/frodo client  $GOFILE
+//go:generate ../../out/frodo client  $GOFILE --language=js
+//go:generate ../../out/frodo client  $GOFILE --language=dart
 
 // OtherService primarily exists to show that we can send event signals between services.
 type OtherService interface {

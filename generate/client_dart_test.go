@@ -127,7 +127,7 @@ func (suite *DartClientSuite) TestCustomRoute() {
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("123", res.ID)
-		suite.Equal("Route:Frodo", res.Text)
+		suite.Equal("Route:Abide", res.Text)
 	})
 }
 
@@ -140,7 +140,7 @@ func (suite *DartClientSuite) TestCustomRouteBody() {
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("123", res.ID)
-		suite.Equal("Route:Frodo", res.Text)
+		suite.Equal("Route:Abide", res.Text)
 	})
 }
 
@@ -153,7 +153,7 @@ func (suite *DartClientSuite) TestCustomRouteQuery() {
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
 		suite.Equal("123", res.ID)
-		suite.Equal("Route:Frodo", res.Text)
+		suite.Equal("Route:Abide", res.Text)
 	})
 }
 

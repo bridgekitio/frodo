@@ -2,20 +2,20 @@
 
 *That's just, like, your opinion, man!*
 
-Abide is an opinionated code generator and runtime library that helps you
+Frod is an opinionated code generator and runtime library that helps you
 write (micro) services/APIs that supports, both, RPC/HTTP
 and Event-Driven invocation. It parses the
 interfaces/structs/comments in your code service
 code to generate all of the client, server, gateway, and pub-sub
 communication code automatically.
 
-You write business logic. Abide generates the annoying
+You write business logic. Frodo generates the annoying
 copy/paste boilerplate needed to expose your service as an
 HTTP API as well as Pub/Sub code to create event-driven
 workflows across your services.
 
-This is the spiritual successor to [Frodo](https://github.com/monadicstack/frodo).
-Abide supports Frodo's RPC/HTTP related features, but it addresses
+This is the spiritual successor to my original project of the same name in a different org: [Frodo](https://github.com/monadicstack/frodo).
+It supports the RPC/HTTP related features of the original, but it addresses
 many shortcomings in the architecture/approach and adds
 Event-Driven communication with almost no extra code on your part.
 
@@ -25,7 +25,7 @@ Event-Driven communication with almost no extra code on your part.
 go install github.com/bridgekitio/frodo@latest
 go get -u github.com/bridgekitio/frodo
 ```
-This will fetch the `abide` code generation executable then add the
+This will fetch the `frodo` code generation executable then add the
 runtime libraries that allow your services and clients to
 communicate with each other as a dependency to your project.
 
@@ -74,7 +74,7 @@ type SubResponse struct {
 ```
 
 One important detail is that the interface name ends with
-the suffix "Service". This tells Abide that this is an
+the suffix "Service". This tells Frodo that this is an
 actual service interface and not just some random abstraction
 in your code.
 
@@ -83,9 +83,9 @@ this work done; just which operations are available.
 
 ### Step 2: Implement Your Service Logic
 
-We actually have enough for Abide to
+We actually have enough for Frodo to
 generate your RPC/API/Event code already, but we'll hold off
-for a moment. Abide frees you up to focus on building
+for a moment. Frodo frees you up to focus on building
 features, so let's actually implement service - no networking,
 no marshaling, no status stuff, no pub/sub - just business logic to make your
 service behave properly.
@@ -115,7 +115,7 @@ func (svc CalculatorServiceHandler) Sub(ctx context.Context, req *SubRequest) (*
 ### Step 3: Generate Your RPC Client and Server Code
 
 At this point, you've just written the same code that you (hopefully)
-would have written even if you weren't using Abide. Next,
+would have written even if you weren't using Frodo. Next,
 we want to auto-generate two things:
 
 * The "server" bits that allow an instance of your CalculatorService
@@ -127,8 +127,8 @@ Just run these two commands in a terminal:
 
 ```shell
 # Feed it the service interface file, not the handler.
-abide server calculator_service.go
-abide client calculator_service.go
+frodo server calculator_service.go
+frodo client calculator_service.go
 ```
 
 ### Step 4: Run Your Calculator API
@@ -149,7 +149,7 @@ import (
 
 func main() {
     // Create your logic-only handler, then wrap it in service
-    // communication bits that let it interact with the Abide runtime.
+    // communication bits that let it interact with the Frodo runtime.
     calcHandler := calc.CalculatorServiceHandler{}
     calcService := calcgen.CalculatorServiceServer(calcHandler)
 	
@@ -159,7 +159,7 @@ func main() {
         services.Listen(apis.NewGateway(":9000")),
         services.Register(calcService),
     )
-	server.Run()
+    server.Run()
 }
 ```
 
@@ -229,16 +229,16 @@ That's it!
 
 ## Creating a JavaScript Client
 
-The `abide` tool can actually generate a JS client that you
+The `frodo` tool can actually generate a JS client that you
 can add to your frontend code (or React Native mobile code)
 to hide the complexity of making API calls to your backend
 service. Without any plugins or fuss, we can create a JS client of the same
 CalculatorService from earlier...
 
 ```shell
-abide client calc/calculator_service.go --language=js
+frodo client calc/calculator_service.go --language=js
     or
-abide client calc/calculator_service.go --language=node
+frodo client calc/calculator_service.go --language=node
 ```
 
 This will create the file `calculator_service.gen.client.js`
@@ -275,7 +275,7 @@ your frontend code.
 
 #### Node Support
 
-Abide uses the `fetch` function to make the actual HTTP requests,
+Frodo uses the `fetch` function to make the actual HTTP requests,
 so if you are using Node 18+, you shouldn't need to do anything
 special as `fetch` is now in the global scope. If that's the
 case, ignore the next paragraph and subsequent sample code.
@@ -294,13 +294,13 @@ const sub = await service.Sub({A:5, B:2});
 
 ## Creating a Dart/Flutter Client
 
-Just like the JS client, Abide can create a Dart client that you can embed
+Just like the JS client, Frodo can create a Dart client that you can embed
 in your Flutter apps so mobile frontends can consume your service.
 
 ```shell
-abide client calc/calculator_service.go --language=dart
+frodo client calc/calculator_service.go --language=dart
   or
-abide client calc/calculator_service.go --language=flutter
+frodo client calc/calculator_service.go --language=flutter
 ```
 
 This will create the file `calculator_service.gen.client.dart`. Add it
@@ -308,7 +308,7 @@ to your Flutter codebase, and it behaves very similarly to the JS client.
 
 > The `HttpClient` from the standard `dart:io` package is NOT supported
 > in Flutter web applications. To support Flutter mobile as well as web,
-> Abide clients uses the [http](https://pub.dev/packages/http) package to
+> Frodo clients uses the [http](https://pub.dev/packages/http) package to
 > make requests to the backend API. You'll need to add that to your
 > pubspec for the following code to work:
 
@@ -326,7 +326,7 @@ print('Add(5, 2) = ${add.Result}');
 print('Sub(5, 2) = ${sub.Result}');
 ```
 
-For more examples of how to write services that let Abide take
+For more examples of how to write services that let Frodo take
 care of the RPC/API boilerplate, take a look in the [example/](https://github.com/bridgekitio/frodo/tree/main/example)
 directory of this repo.
 
@@ -338,7 +338,7 @@ in the system complete. For instance, let's say that after a user
 places an order, you want the system to send them an order confirmation
 email as well as send them a coupon for a future order.
 
-Abide makes it super easy to wire these events up. Here is what
+Frodo makes it super easy to wire these events up. Here is what
 your service interface would look like. And yes, you'd probably
 put email-related operations in a different service, but we
 just want to see how to wire up event-driven service invocation.
@@ -387,7 +387,7 @@ just looking at the code, it should be somewhat obvious what
 we're going for. We will invoke both "send" methods automatically be
 any time there's a successful call to `PlaceOrder`.
 
-When `PlaceOrder` finishes, Abide automatically publishes an
+When `PlaceOrder` finishes, Frodo automatically publishes an
 `OrderService.PlaceOrder` event with the response value.
 Both `SendXXX` methods receive that event and build
 their request structs automatically. They'll fill in `OrderID`
@@ -396,7 +396,7 @@ because they don't have equivalent fields for those.
 
 If that makes sense, notice that the only thing you did
 differently than before was adding that line in the comments.
-That's all the info that Abide needs to wire that behavior up for you!
+That's all the info that Frodo needs to wire that behavior up for you!
 
 There is one more one-line change we need to make in order for
 this to work. That's in `main()` when we set up our server.
@@ -414,6 +414,7 @@ func main() {
     // OR from events wired up using the 'ON' doc option.
     server := services.NewServer(
         services.Listen(apis.NewGateway(":9000")),
+        services.Listen(events.NewGateway()), // <--- This is the only difference.
         services.Register(orderService),
     )
     server.Run()
@@ -443,7 +444,7 @@ event broker to publish and react to events fired by your services.
 
 If you want to write this as a
 distributed system with multiple remote instances and services, however, you
-will need some third party event broker to manage this. Abide ships with support
+will need some third party event broker to manage this. Frodo ships with support
 for using [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream) out-of-the-box.
 
 ```go
@@ -463,7 +464,8 @@ func main() {
         nats.WithMaxAge(24 * time.Hours),
     )
 	
-    // Tell the event gateway to use NATS instead of local queues.
+    // Tell the event gateway to use NATS instead of local queues. Notice that
+    // we're still listening for HTTP/RPC requests as well.
     server := services.NewServer(
         services.Listen(apis.NewGateway(":9000")),
         services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
@@ -490,7 +492,7 @@ coupled units of work fire while still scaling out your infrastructure.
 
 ## Doc Options: Custom URLs, Status, etc
 
-Abide gives you a service/API that "just works" out of the
+Frodo gives you a service/API that "just works" out of the
 box. By default, endpoints follow a similar RPC/POST style used by lots of
 other service libraries/frameworks.
 
@@ -588,7 +590,7 @@ only fires asynchronously when some event fires (next section)
 or it's just some private code you want to manually execute but not
 allow external access.
 
-If the operation has `HTTP OMIT`, Abide will not create an API
+If the operation has `HTTP OMIT`, Frodo will not create an API
 route for it. It will not appear in your OpenAPI docs or external
 language clients (like JS and Dart). The method *will* still
 appear in your Go client because we need to satisfy the service
@@ -628,12 +630,12 @@ func (svc *GroupService) RenameGroup(ctx context.Context, req *RenameGroupReques
     // the values "admin.write" and "group.123.write". If you `PUT /group/789/name` then
     // you'll have "group.789.write" as the second value.
     //
-    // Abide will automatically bind the "{ID}" value in the role just like it did
+    // Frodo will automatically bind the "{ID}" value in the role just like it did
     // when populating your request struct. It follows the exact same binding rules, so
     // if you know how to customize URL routes, you can have exact roles to check for.
     requiredRoles := metadata.Route(ctx).Roles
 
-    // Not Abide stuff... this is your black box that gets info about the authenticated caller
+    // Not Frodo stuff... this is your black box that gets info about the authenticated caller
     // and checks to see that it contains any of the 'requiredRoles'
     if !authorization.HasAnyRole(ctx, requiredRoles) {
         return nil, fail.Forbidden('no soup for you!')
@@ -643,11 +645,11 @@ func (svc *GroupService) RenameGroup(ctx context.Context, req *RenameGroupReques
 }
 ```
 
-Because Abide automatically populates path variables in your role names, you can
+Because Frodo automatically populates path variables in your role names, you can
 very easily make a single `AuthorizationMiddleware` that works for all endpoints in
 all your services. This way you're not copy/pasting these 3 lines to high hell. Yay!
 
-At some point Abide might get even more opinionated and provide ways to carry this info
+At some point Frodo might get even more opinionated and provide ways to carry this info
 around, but for now that's an exercise for the user.
 
 ## Error Handling
@@ -657,7 +659,7 @@ resulting RPC/HTTP request will have a 500 status code. You
 can, however, customize that status code to correspond to the type
 of failure (e.g. 404 when something was not found).
 
-The easiest way to do this is to just use Abide's `fail`
+The easiest way to do this is to just use Frodo's `fail`
 package when you encounter a failure case:
 
 ```go
@@ -728,14 +730,14 @@ func (svc UserService) CreateToken(ctx context.Context, req *CreateTokenRequest)
 ### Errors In Async Event Handlers
 
 Handling errors in RPC calls is fairly easy. The clients that
-Abide generate return the error. Simple.
+Frodo generate return the error. Simple.
 
 When using the `ON Service.Method` option to trigger calls
 based on events, you don't really have control over that code, so
 we need to do something a little different to handle errors
 that might occur during those asynchronous flows.
 
-You can give the Event Gateway a callback function that Abide will
+You can give the Event Gateway a callback function that Frodo will
 invoke any time an error occurs processing event-based service operations.
 
 ```go
@@ -757,7 +759,7 @@ func handleEventError(err error) {
 
 You'll find that you frequently have work that you want to execute
 before/after every single service invocation regardless of whether
-it came from the API or some event. Abide uses continuation passing
+it came from the API or some event. Frodo uses continuation passing
 functions similar to what you see in the most popular Go HTTP middleware
 libraries.
 
@@ -806,7 +808,7 @@ we have seen above: authorization, logging, observability, etc. They're
 all things that are important regardless of whether we're servicing
 an API call or an event.
 
-One of Abide's primary goals is to make it so that you never have
+One of Frodo's primary goals is to make it so that you never have
 to think about HTTP or transport code, but there are still times
 when there's no getting around it. If you want to consume your
 service in a web application, you're going to need to set up
@@ -849,7 +851,7 @@ are in Service B's handler. There are
 instances, however, where it's useful to have data follow
 every hop from service to service; trace ids, authorization, etc.
 
-Abide uses the `metadata` package to store all manner of values for
+Frodo uses the `metadata` package to store all manner of values for
 the entire request; even if that request hits multiple services.
 
 ### Metadata: Authorization
@@ -914,14 +916,14 @@ client.DropTables(req, authorization: 'Token 12345');
 If you ever want to be able to debug/observe behaviors in your
 system, you'll need a consistent request/trace id to tie back
 to every operation. For instance, if you place an order and then
-that triggers 4 other operations (emails, analytics, etc.), Abide
+that triggers 4 other operations (emails, analytics, etc.), Frodo
 manages a trace id that will be the same across all of those
 related operations.
 
-> Abide will honor any X-Request-ID header it receives,
+> Frodo will honor any X-Request-ID header it receives,
 so if your service is behind a load balancer or some proxy that
-generates that HTTP header, that is the Trace ID that Abide will use.
-If not, Abide will generate a unique value for you so that you always
+generates that HTTP header, that is the Trace ID that Frodo will use.
+If not, Frodo will generate a unique value for you so that you always
 have a meaningful Trace ID.
 
 ```go
@@ -972,7 +974,7 @@ they were RPC calls or event-based calls. Your trace id follows you.
 
 ### Metadata: Values
 
-Although Abide manages some very specific fields with very specific
+Although Frodo manages some very specific fields with very specific
 purposes, the `metadata` package lets you store a general purpose
 map of values that you deem as important. Just like
 authorization or trace ids, these values will be accessible by
@@ -1017,7 +1019,7 @@ If you're wondering why `metadata.Value()` looks more like
 do with a limitation of reflection in Go. When the values
 are sent over the network from Service A to Service B/C, we
 lose all type information. We need the type info `&b` gives
-us in order to properly restore the original value, so Abide
+us in order to properly restore the original value, so Frodo
 follows the idiom established by many
 of the decoders in the standard library.
 
@@ -1026,14 +1028,14 @@ of the decoders in the standard library.
 Let's say that you're writing ProfilePictureService. One of the operations
 you might want is the ability to return the raw JPG data for a user's profile
 picture. You do this the same way that you handle JSON-based responses; just
-implement some specialized interfaces so that Abide knows to treat it a little different:
+implement some specialized interfaces so that Frodo knows to treat it a little different:
 
 ```go
 type ServeResponse struct {
     file *io.File
 }
 
-// By implementing services.ContentGetter, the response tells Abide to
+// By implementing services.ContentGetter, the response tells Frodo to
 // respond w/ raw data rather than JSON. Instead of turning the struct into
 // JSON, grab bytes from this reader and deliver them in the response.
 func (res ServeResponse) Content() io.ReadCloser {
@@ -1041,7 +1043,7 @@ func (res ServeResponse) Content() io.ReadCloser {
 }
 
 // By implementing services.ContentTypeGetter, this lets you dictate the
-// underlying HTTP Content-Type header. Without this Abide will have
+// underlying HTTP Content-Type header. Without this Frodo will have
 // nothing to go on and assume "application/octet-stream".
 func (res ServeResponse) ContentType() string {
     return "image/jpeg"
@@ -1066,7 +1068,7 @@ It's fairly common to have a service call that does some work to locate a
 resource, authorize it, and then redirect to S3, CloudFront, or some other
 CDN to actually serve up the raw asset.
 
-With Abide, it's pretty simple. If your XxxResponse struct implements the
+With Frodo, it's pretty simple. If your XxxResponse struct implements the
 `services.Redirector` interface then the API gateway will respond with a
 307-style redirect to the URL of your choice:
 
@@ -1096,8 +1098,8 @@ func (svc VideoServiceHandler) Download(ctx context.Context, req *DownloadReques
 
 ## Running Multiple Services
 
-One of the core ideas behind Abide is that you should build your services in an isolated,
-decoupled manner regardless of how you intend to deploy them. Abide gives you the 
+One of the core ideas behind Frodo is that you should build your services in an isolated,
+decoupled manner regardless of how you intend to deploy them. Frodo gives you the 
 flexibility to write your services once, and you can choose to either run them separately
 as micro/mini services. Alternately, you can take all of the services and run them in
 a single process as a monolith.
@@ -1163,7 +1165,7 @@ better, more resilient code.
 ## Go Generate Support
 
 If you prefer to stick to the standard Go toolchain for generating code, you can use
-`//go:generate` comments to hook the Abide code generator into your build process. 
+`//go:generate` comments to hook the Frodo code generator into your build process. 
 
 For example, this generates the server/gateway, mock service, Go client, JS client,
 and Flutter/Dart client, and OpenAPI documentation just by marking up your service
@@ -1174,12 +1176,12 @@ import (
    ...
 )
 
-//go:generate abide server  $GOFILE
-//go:generate abide client  $GOFILE
-//go:generate abide client  $GOFILE --language=js
-//go:generate abide client  $GOFILE --language=flutter
-//go:generate abide docs    $GOFILE
-//go:generate abide mock    $GOFILE
+//go:generate frodo server  $GOFILE
+//go:generate frodo client  $GOFILE
+//go:generate frodo client  $GOFILE --language=js
+//go:generate frodo client  $GOFILE --language=flutter
+//go:generate frodo docs    $GOFILE
+//go:generate frodo mock    $GOFILE
 
 // CalculatorService provides basic arithmetic operations.
 //
@@ -1193,12 +1195,12 @@ type CalculatorService interface {
 ## Mocking Services
 
 Using mocks is a divisive topic, and I'm not here to tell you the right/wrong way to
-test your code. If you prefer mocks, Abide can generate helpful mock implementations
+test your code. If you prefer mocks, Frodo can generate helpful mock implementations
 of your services to use in your tests. Using a similar command that we used for 
 generating our server and clients, you can do the following:
 
 ```shell
-abide mock calculator_service.go
+frodo mock calculator_service.go
 ```
 
 That creates `gen/calculator_service.gen.mock.go` which you can use in your test
@@ -1241,13 +1243,13 @@ func TestSomethingThatDependsOnAddFailure(t *testing.T) {
 ## Generate OpenAPI/Swagger Documentation (Experimental)
 
 Definitely a work in progress, but in addition to generating your backend and
-frontend assets, Abide can generate OpenAPI 3.0 YAML files to describe your API.
+frontend assets, Frodo can generate OpenAPI 3.0 YAML files to describe your API.
 It uses the name/type information from your Go code as well as the GoDoc comments
 that you (hopefully) write. Document your code in Go and you can get online API docs
 for free:
 
 ```shell
-abide docs calculator_service.go
+frodo docs calculator_service.go
 ```
 
 Now you can feed the file gen/calculator_service.gen.swagger.yaml to your favorite 
@@ -1282,13 +1284,15 @@ widespread dislike of that choice until I ran into it myself. It's silly
 having to make sure that people `go install` the URL that ends in `/v2` instead
 of the more natural root package.
 
-While Abide solves the same core issue that Frodo did, I changed the API
-significantly to make multiservice deployments a first class citizen and
-enable event-driven flows. Try as I might, I every attempt to fit event
-driven stuff into Frodo's runtime code felt hacky and wrong. I needed a
-version 2 but Go did us all dirty with versioning.
+While this project solves the same core issue that the original Frodo did, I had to change the API
+significantly support event driven workflows and to better handle the multi-service case in the section above.
+Try as I might, every attempt to fit event
+driven stuff into Frodo's original runtime code felt hacky and wrong. I needed a
+version 2 but Go did us all dirty with versioning. So, you can continue to use the old one
+to your heart's content. I have no intention of taking it down, but this is the one I'm
+going to maintain moving forward.
 
-### Why does Abide only support NATS for event-driven flows?
+### Why does Frodo only support NATS for event-driven flows?
 
 Well, I had to start somewhere. NATS is written in Go, it's stupid simple to
 set up, and satisfies most use cases, so it seemed like the natural way to go.
