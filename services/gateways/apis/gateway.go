@@ -133,7 +133,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	// as the OPTIONS handler won't actually be invoked if you enable CORS via middleware.
 	gw.endpoints[httpRoute{Method: method, Path: path}] = endpoint
 	gw.endpoints[httpRoute{Method: http.MethodOptions, Path: path}] = endpoint
-	gw.router.UsingContext().Handle(method, path, gw.middleware.Then(httpHandler))
+	gw.router.UsingContext().Handle(method, path, httpHandler)
 	gw.registerOptions(path)
 }
 

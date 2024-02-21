@@ -1,6 +1,6 @@
 module github.com/bridgekitio/frodo
 
-go 1.21
+go 1.22
 
 require (
 	github.com/dimfeld/httptreemux/v5 v5.4.0
