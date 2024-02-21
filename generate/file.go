@@ -148,7 +148,7 @@ func prettify(t FileTemplate, sourceCode []byte) ([]byte, error) {
 	return format.Source(sourceCode)
 }
 
-// templateFuncs are all of pipe functions we want available when evaluating the Go template
+// templateFuncs are all of the pipe functions we want available when evaluating the Go template
 // to generate an artifact's source code.
 var templateFuncs = template.FuncMap{
 	// General purpose string manipulators

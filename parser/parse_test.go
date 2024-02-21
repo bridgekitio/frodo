@@ -227,7 +227,7 @@ func (suite *ParserSuite) TestFieldTypes() {
 	// Make sure we support types defined outside of this file and package; types that are defined in another package
 	// of this project as well as those that belong to third party packages.
 	suite.assertFieldType(fields, "SharedType", expectedFieldType{Name: "testdata.SharedType", Pointer: false, JSON: "object"})
-	suite.assertFieldType(fields, "ThirdParty", expectedFieldType{Name: "v5.ContextRouteData", Pointer: false, JSON: "object"})
+	suite.assertFieldType(fields, "ThirdParty", expectedFieldType{Name: "cobra.Command", Pointer: false, JSON: "object"})
 
 	// This should be flattened, not included as-is. Exclude non-exported fields of the embedded type
 	suite.Require().Nil(fields.ByName("EmbeddedFields"))

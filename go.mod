@@ -3,7 +3,6 @@ module github.com/bridgekitio/frodo
 go 1.22
 
 require (
-	github.com/dimfeld/httptreemux/v5 v5.5.0
 	github.com/nats-io/nats.go v1.33.1
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4

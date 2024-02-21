@@ -467,6 +467,22 @@ func (route *GatewayRoute) QualifiedPath() string {
 	return "/" + path
 }
 
+// ParsePathParams extracts a slice of the path parameter names from the Path of this route. For instance the
+// path "/user/{UserID}/transaction/{TransactionID}" will parse to []string{"UserID", "TransactionID"}.
+func (route *GatewayRoute) ParsePathParams() []string {
+	var params []string
+	segments := strings.Split(strings.TrimSpace(route.Path), "/")
+	for _, segment := range segments {
+		if !strings.HasPrefix(segment, "{") && !strings.HasSuffix(segment, "}") {
+			continue
+		}
+
+		param := strings.TrimPrefix(strings.TrimSuffix(segment, "}"), "{")
+		params = append(params, param)
+	}
+	return params
+}
+
 // MethodMatches returns true when the route's method matches at least one of 'these' options.
 func (route *GatewayRoute) MethodMatches(these ...string) bool {
 	for _, method := range these {

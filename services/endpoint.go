@@ -65,6 +65,11 @@ type EndpointRoute struct {
 	// that requests get to this endpoint. For API endpoints, it's the request path
 	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
+	// PathParams contains the names of the path variables/parameters you expect in the path of
+	// this endpoint. For instance, the path "/user/{UserID}/transaction/{TransactionID}" would set
+	// this slice to []string{"UserID", "TransactionID"}. This allows you to quickly bind only the
+	// values you expect in the pattern.
+	PathParams []string
 	// Status is mainly used by API gateway routes to determine what HTTP status code we should
 	// return to the caller when this endpoint succeeds. By default, this is 200.
 	Status int

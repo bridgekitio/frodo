@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/bridgekitio/frodo/parser/testdata"
-	"github.com/dimfeld/httptreemux/v5"
+	"github.com/spf13/cobra"
 )
 
 type HappyLittleService interface {
@@ -50,7 +50,7 @@ type Request struct {
 	AliasSlice        AliasSlice
 	AliasSlicePointer *AliasSlice
 
-	ThirdParty httptreemux.ContextRouteData
+	ThirdParty cobra.Command
 	SharedType testdata.SharedType
 }
 
