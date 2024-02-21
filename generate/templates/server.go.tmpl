@@ -64,6 +64,11 @@ func {{ $serviceFunc }}(handler {{ $serviceType }}, middleware ...services.Middl
 						GatewayType: "{{ .GatewayType }}",
 						Method:      "{{ .Method }}",
 						Path:        "{{ .QualifiedPath }}",
+						PathParams:  []string{
+						  {{- range .ParsePathParams }}
+						    "{{ . }}",
+						  {{ end }}
+						},
 						Status:      {{ .Status }},
 					},
 				{{ end }}

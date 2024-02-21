@@ -3,6 +3,7 @@ package apis
 import (
 	"context"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,28 +16,28 @@ import (
 	"github.com/bridgekitio/frodo/internal/naming"
 	"github.com/bridgekitio/frodo/internal/quiet"
 	"github.com/bridgekitio/frodo/services"
-	"github.com/dimfeld/httptreemux/v5"
 )
 
 // NewGateway creates a new API Gateway that allows your service to accept incoming requests
 // using RPC over HTTP. This encapsulates a standard net/http server while providing options
 // so that you can customize various aspects of the server, TLS, and middleware as desired.
 func NewGateway(address string, options ...GatewayOption) *Gateway {
-	router := httptreemux.New()
+	router := http.NewServeMux()
+	codecs := codec.New()
 	gw := Gateway{
-		router:     router,
-		codecs:     codec.New(),
-		middleware: HTTPMiddlewareFuncs{},
-		endpoints:  map[httpRoute]services.Endpoint{},
-		server:     &http.Server{Addr: address, Handler: router},
-		tlsCert:    "",
-		tlsKey:     "",
+		router:          router,
+		codecs:          codecs,
+		middleware:      HTTPMiddlewareFuncs{},
+		endpoints:       map[httpRoute]services.Endpoint{},
+		server:          &http.Server{Addr: address, Handler: router},
+		tlsCert:         "",
+		tlsKey:          "",
+		notFoundHandler: defaultNotFoundHandler(codecs),
 	}
 	for _, option := range options {
 		option(&gw)
 	}
 
-	gw.router.NotFoundHandler = gw.notFoundHandler
 	return &gw
 }
 
@@ -46,13 +47,14 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 // DO NOT CREATE THIS DIRECTLY. Use the NewGateway() constructor to properly set up an
 // API gateway in your main() function.
 type Gateway struct {
-	codecs     codec.Registry
-	middleware HTTPMiddlewareFuncs
-	endpoints  map[httpRoute]services.Endpoint
-	router     *httptreemux.TreeMux
-	server     *http.Server
-	tlsCert    string
-	tlsKey     string
+	codecs          codec.Registry
+	middleware      HTTPMiddlewareFuncs
+	endpoints       map[httpRoute]services.Endpoint
+	router          *http.ServeMux
+	server          *http.Server
+	tlsCert         string
+	tlsKey          string
+	notFoundHandler http.HandlerFunc
 }
 
 // Type returns "API" to properly tag this type of gateway.
@@ -65,12 +67,33 @@ func (gw *Gateway) Type() services.GatewayType {
 // down gracefully, this will return nil instead of http.ErrServerClosed. All other
 // errors are propagated back.
 func (gw *Gateway) Listen() error {
-	switch err := gw.listenAndServe(); err {
-	case nil, http.ErrServerClosed:
+	// The Go 1.22 ServeMux doesn't have a special hook for missing routes. You just need to add some "catch-all"
+	// routes that are used when none of your service functions' paths match. We do this here because at this point
+	// all "real" routes should be in place.
+	gw.registerNotFound()
+
+	switch err := gw.listenAndServe(); {
+	case err == nil, errors.Is(err, http.ErrServerClosed):
 		return nil
 	default:
 		return fmt.Errorf("api gateway error: %w", err)
 	}
+}
+
+// registerNotFound updates our ServeMux to handle any route that is not explicitly defined by a service as a 404.
+func (gw *Gateway) registerNotFound() {
+	customFuncs := gw.middleware
+	standardFuncs := HTTPMiddlewareFuncs{
+		recoverFromPanic(gw.codecs.DefaultEncoder()), // If your custom middleware or handler funcs suck, don't die.
+	}
+
+	handler := standardFuncs.Append(customFuncs...).Then(gw.notFoundHandler)
+	gw.router.HandleFunc("GET /", handler)
+	gw.router.HandleFunc("PATCH /", handler)
+	gw.router.HandleFunc("POST /", handler)
+	gw.router.HandleFunc("PUT /", handler)
+	gw.router.HandleFunc("DELETE /", handler)
+	gw.router.HandleFunc("OPTIONS /", handler)
 }
 
 // listenAndServe determines if we need to start up in plain old HTTP mode or HTTPS
@@ -107,7 +130,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	// And yes, we're ignoring the error, but that only happens if JoinPath can't parse the
 	// first parameter as a URL. Since that's hardcoded to something that is guaranteed to parse
 	// properly, we're good.
-	path := gw.normalizePath(route)
+	path := normalizePath(route.Path)
 	method := strings.ToUpper(route.Method)
 
 	// We want to try and make sure that our bookkeeping tasks like request ids, metadata,
@@ -133,25 +156,8 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	// as the OPTIONS handler won't actually be invoked if you enable CORS via middleware.
 	gw.endpoints[httpRoute{Method: method, Path: path}] = endpoint
 	gw.endpoints[httpRoute{Method: http.MethodOptions, Path: path}] = endpoint
-	gw.router.UsingContext().Handle(method, path, gw.middleware.Then(httpHandler))
+	gw.router.HandleFunc(method+" "+path, httpHandler)
 	gw.registerOptions(path)
-}
-
-// normalizePath takes all disparate pathing information at the service and endpoint levels and returns the
-// actual path that we will feed to the underlying HTTP router. The steps include:
-//
-// - Converting /user/{User.ID} brace variable to  /user/:User.ID colon format.
-func (gw *Gateway) normalizePath(route services.EndpointRoute) string {
-	// The HTTP router expects variables to be in colon-format (e.g. ":User.ID"). We allow you to use
-	// brace format (e.g. "{User.ID}"), so convert variables to the router's format.
-	pathSegments := strings.Split(route.Path, "/")
-	for i, segment := range pathSegments {
-		if strings.HasPrefix(segment, "{") && strings.HasSuffix(segment, "}") {
-			pathSegments[i] = ":" + segment[1:len(segment)-1]
-		}
-	}
-
-	return strings.Join(pathSegments, "/")
 }
 
 func (gw *Gateway) registerOptions(path string) {
@@ -162,7 +168,7 @@ func (gw *Gateway) registerOptions(path string) {
 	//   POST /foo/bar
 	//
 	// Since we blindly register an options with each, we will end up registering OPTIONS twice for that
-	// path. The httptreemux will panic when that happens. Originally, I planned on just looking through the
+	// path. The serve mux will panic when that happens. Originally, I planned on just looking through the
 	// gateway's already-registered endpoint paths for a match (and thus skip), but there's a case that's
 	// hard to detect:
 	//
@@ -179,7 +185,7 @@ func (gw *Gateway) registerOptions(path string) {
 		recover()
 	}()
 
-	gw.router.UsingContext().OPTIONS(path, gw.middleware.Then(gw.methodNotAllowedHandler))
+	gw.router.HandleFunc("OPTIONS "+path, gw.middleware.Then(gw.methodNotAllowedHandler))
 }
 
 func (gw *Gateway) toHTTPHandler(endpoint services.Endpoint, route services.EndpointRoute) http.HandlerFunc {
@@ -222,7 +228,7 @@ func (gw *Gateway) toHTTPHandler(endpoint services.Endpoint, route services.Endp
 		// body or query string. The body will override anything defined in the query string. This
 		// way you can't sneak in values to circumvent security while providing a sane set of
 		// binding expectations to your input data.
-		if err := valueDecoder.DecodeValues(req.URL.Query(), &serviceRequest); err != nil {
+		if err := valueDecoder.DecodeValues(queryParams(route, req), &serviceRequest); err != nil {
 			respondFailure(w, req, encoder, err)
 			return
 		}
@@ -230,7 +236,7 @@ func (gw *Gateway) toHTTPHandler(endpoint services.Endpoint, route services.Endp
 			respondFailure(w, req, encoder, err)
 			return
 		}
-		if err := valueDecoder.DecodeValues(pathParams(req), &serviceRequest); err != nil {
+		if err := valueDecoder.DecodeValues(pathParams(route, req), &serviceRequest); err != nil {
 			respondFailure(w, req, encoder, err)
 			return
 		}
@@ -259,11 +265,53 @@ func (gw *Gateway) methodNotAllowedHandler(w http.ResponseWriter, req *http.Requ
 	respondFailure(w, req, encoder, fail.MethodNotAllowed("method not allowed: %v", req.Method))
 }
 
-// notFoundHandler replies with a 404 error status no matter what. The body will match our
+// defaultNotFoundHandler replies with a 404 error status no matter what. The body will match our
 // look like {"Status":404, "Message":"..."} to match our standard error payload.
-func (gw *Gateway) notFoundHandler(w http.ResponseWriter, req *http.Request) {
-	encoder := gw.codecs.DefaultEncoder()
-	respondFailure(w, req, encoder, fail.NotFound("not found"))
+func defaultNotFoundHandler(codecs codec.Registry) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		respondFailure(w, req, codecs.DefaultEncoder(), fail.NotFound("not found"))
+	}
+}
+
+// normalizePath sanitizes the path params in your endpoint's path pattern because we allow some tweaks that the
+// Go ServeMux does not. Mainly, we support a path that looks like this "/user/{User.ID}" where there's a period in
+// the path variable. Go's router only allows path params to be valid Go variable names. I don't know why...
+//
+// As a result, we'll tweak offending paths so that we'll actually register "/user/{User__DOT__ID}" which is a valid
+// variable name (albeit an ugly one). This makes ServeMux happy, but we need to make sure to take this name
+// change into account when looking up path variables on incoming requests... which we do in the pathParams() function.
+func normalizePath(path string) string {
+	segments := strings.Split(strings.TrimSpace(path), "/")
+	for i, segment := range segments {
+		if strings.HasPrefix(segment, "{") {
+			segments[i] = normalizePathParamName(segment)
+		}
+	}
+	return strings.Join(segments, "/")
+}
+
+// normalizePathParamName converts a path segment like "{Foo.BAR}" into a ServeMux friendly "{Foo__DOT__Bar}". See the
+// comment for normalizePath() for full details on why this is necessary.
+func normalizePathParamName(paramName string) string {
+	return strings.ReplaceAll(paramName, ".", "__DOT__")
+}
+
+// queryParams extracts the query string parameters from the request in a way that makes the binder happy.
+func queryParams(_ services.EndpointRoute, req *http.Request) map[string][]string {
+	return req.URL.Query()
+}
+
+// pathParams extracts the path parameters from the incoming URL path. This makes sure to take into account
+// the "." to "__DOT__" normalization we need to do when registering routes (see normalizePath()). Don't worry
+// the map of params will revert everything back to the original names, so your value map will look something
+// like {"User.ID":"123", "Trans.ID":"ABC"} and not {"User__DOT__ID":"123", "Trans__DOT__ID":"ABC"}.
+func pathParams(route services.EndpointRoute, req *http.Request) map[string][]string {
+	values := url.Values{}
+	for _, paramName := range route.PathParams {
+		normalParamName := normalizePathParamName(paramName)
+		values.Set(paramName, req.PathValue(normalParamName))
+	}
+	return values
 }
 
 // httpRoute is the key used to reference routes in the gateway's route table.
@@ -425,15 +473,6 @@ func writeContentFileName(headers http.Header, streamResponse services.ContentGe
 	headers.Set("Content-Disposition", `attachment; filename="`+contentFileName+`"`)
 }
 
-func pathParams(req *http.Request) map[string][]string {
-	params := httptreemux.ContextParams(req.Context())
-	values := url.Values{}
-	for key, value := range params {
-		values.Set(key, value)
-	}
-	return values
-}
-
 // GatewayOption defines a setting you can apply when creating an RPC gateway via 'NewGateway'.
 type GatewayOption func(*Gateway)
 
@@ -467,5 +506,14 @@ func WithTLSFiles(certFile string, keyFile string) GatewayOption {
 	return func(gw *Gateway) {
 		gw.tlsCert = certFile
 		gw.tlsKey = keyFile
+	}
+}
+
+// WithNotFound lets you customize what happens when an incoming request doesn't match any of your service's
+// routes. By default, the server will respond w/ a 404 and the body {"status":404, "message":"not found"}, but
+// this allows you to handle that situation however you like.
+func WithNotFound(handler http.HandlerFunc) GatewayOption {
+	return func(gw *Gateway) {
+		gw.notFoundHandler = handler
 	}
 }

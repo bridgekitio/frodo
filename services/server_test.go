@@ -5,6 +5,7 @@ package services_test
 import (
 	"context"
 	"io"
+	"net/http"
 	"testing"
 	"time"
 
@@ -23,12 +24,20 @@ func TestServerSuite(t *testing.T) {
 
 type ServerSuite struct {
 	suite.Suite
-	addresses testext.FreeAddress
+	addresses      testext.FreeAddress
+	httpMiddleware apis.HTTPMiddlewareFuncs
+	client         testext.SampleService
+}
+
+func (suite *ServerSuite) SetupTest() {
+	suite.httpMiddleware = apis.HTTPMiddlewareFuncs{}
+	suite.client = nil
 }
 
 func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) {
 	// Grab a fresh address, so we can parallelize our tests.
 	address := suite.addresses.Next()
+	suite.client = gen.SampleServiceClient(address)
 
 	// Capture invocations across both services in one timeline.
 	sequence := &testext.Sequence{}
@@ -40,7 +49,7 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 	}
 
 	server := services.NewServer(
-		services.Listen(apis.NewGateway(address)),
+		services.Listen(apis.NewGateway(address, apis.WithMiddleware(suite.httpMiddleware...))),
 		services.Listen(events.NewGateway()),
 		services.Register(gen.SampleServiceServer(sampleService)),
 		services.Register(gen.OtherServiceServer(otherService)),
@@ -283,4 +292,32 @@ func (suite *ServerSuite) TestPanic() {
 	// logging hook is properly working. This is not added to the calls sequence in the service, but rather in
 	// suite.start() when setting up the service.
 	suite.assertInvoked(calls, []string{"OnPanic:don't"})
+}
+
+// Prevent regression on the bug where HTTP middleware would fire twice for every single call.
+// https://github.com/bridgekitio/frodo/issues/2
+func (suite *ServerSuite) TestHttpMiddlewareFireOnce() {
+	middlewareSequence := &testext.Sequence{}
+
+	suite.httpMiddleware = apis.HTTPMiddlewareFuncs{
+		func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+			middlewareSequence.Append("1:BEFORE")
+			next(w, req)
+			middlewareSequence.Append("1:AFTER")
+		},
+		func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+			middlewareSequence.Append("2:BEFORE")
+			next(w, req)
+			middlewareSequence.Append("2:AFTER")
+		},
+	}
+
+	_, _, shutdown := suite.start()
+	defer shutdown()
+
+	res, err := suite.client.Defaults(context.Background(), &testext.SampleRequest{Text: "Hello"})
+
+	suite.Require().NoError(err)
+	suite.Equal("Defaults:Hello", suite.responseText(res))
+	suite.Equal([]string{"1:BEFORE", "2:BEFORE", "2:AFTER", "1:AFTER"}, middlewareSequence.Values())
 }
