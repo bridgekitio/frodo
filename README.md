@@ -24,6 +24,9 @@ Event-Driven communication with almost no extra code on your part.
 ```shell
 go install github.com/bridgekitio/frodo@latest
 go get -u github.com/bridgekitio/frodo
+
+# You may this if you get messages about invalid dependencies...
+go mod tidy
 ```
 This will fetch the `frodo` code generation executable then add the
 runtime libraries that allow your services and clients to
