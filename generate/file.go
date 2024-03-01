@@ -26,12 +26,8 @@ var StandardTemplates embed.FS
 // code/project file. The 'ctx' will be fed in as the root data to the Go template represented by
 // the fileTemplate parameter.
 func File(ctx *parser.Context, fileTemplate FileTemplate) error {
-	inputFileName := filepath.Base(ctx.Path)
-	inputDir := filepath.Dir(ctx.Path)
-
-	outputFileName := strings.TrimSuffix(inputFileName, ".go") + ".gen." + fileTemplate.Name
-	outputDir := filepath.Join(inputDir, "gen")
-	outputPath := filepath.Join(outputDir, outputFileName)
+	outputPath := OutputPath(ctx.Path, fileTemplate.Name)
+	outputDir := filepath.Dir(outputPath)
 
 	// Step 1: Create the "gen/" directory in the same directory as the file we're parsing.
 	err := os.MkdirAll(outputDir, os.ModePerm)
@@ -69,6 +65,38 @@ func File(ctx *parser.Context, fileTemplate FileTemplate) error {
 	return nil
 }
 
+// OutputPath calculates the path (relative to where frodo's being executed) where we'll write the output artifact.
+func OutputPath(inputPath string, templateName string) string {
+	inputFileName := filepath.Base(inputPath)
+	inputDir := filepath.Dir(inputPath)
+
+	outputFileName := strings.TrimSuffix(inputFileName, ".go") + ".gen." + templateName
+	outputDir := filepath.Join(inputDir, "gen")
+	return filepath.Join(outputDir, outputFileName)
+}
+
+// UpToDate looks at the modified timestamp of your source/interface file and the timestamp of
+// the output artifact file you want to generate. This will return 'true' if either:
+//
+//   - The output artifact doesn't exist, so it needs to be initially created.
+//   - The output artifact is older than the source file (i.e. it's stale).
+func UpToDate(inputPath string, templateName string) bool {
+	inputStat, err := os.Stat(inputPath)
+	if err != nil {
+		fmt.Println("Unable to stat() input file: " + inputPath)
+		return false
+	}
+
+	outputPath := OutputPath(inputPath, templateName)
+	outputStat, err := os.Stat(outputPath)
+	if err != nil {
+		fmt.Println("Unable to stat() output file: " + outputPath)
+		return false
+	}
+
+	return inputStat.ModTime().Before(outputStat.ModTime())
+}
+
 // NewStandardTemplate creates the metadata that points to one of our standard, built-in
 // templates for a gateway, client, etc.
 func NewStandardTemplate(name string, path string) FileTemplate {
@@ -88,7 +116,7 @@ func NewCustomTemplate(name string, path string) FileTemplate {
 	// function. We want to support either using a relative directory or an absolute one; either of which could
 	// point to a file anywhere on the developer's hard drive.
 	//
-	// To work around this, we'll only work in absolute paths. This isn't a web server so it's up to the dev where
+	// To work around this, we'll only work in absolute paths. This isn't a web server, so it's up to the dev where
 	// they want to load template files from w/o worrying about security. By expanding relative paths to absolute
 	// we can root the DirFS at "/" and everything should work out. The only quirky thing (and maybe I'm doing
 	// something wrong) is that I need to strip the leading "/" off of our absolute path because I think DirFS
@@ -105,7 +133,7 @@ func NewCustomTemplate(name string, path string) FileTemplate {
 // FileTemplate tracks the data needed to load a code generation template for one of our output artifacts.
 // This can be one of our built-in templates (using embed.FS) or a
 type FileTemplate struct {
-	// Name is the identifier used to indicate "which" file you're generating. For example you might set
+	// Name is the identifier used to indicate "which" file you're generating. For example, you might set
 	// this to "client.go" when generating a Go RPC client file or "gateway.go" when generating the API
 	// gateway. In practice this is generally used when building the file name for the generated file.
 	Name string
@@ -237,11 +265,11 @@ func (funcs jsonFunctions) convertType(t *parser.TypeDeclaration) string {
 type javaFunctions struct{}
 
 func (funcs javaFunctions) convertPackage(packageName string) string {
-	// Split the package like "github.com/myorg/mymodule/a/b/c" into the segments
+	// Split the package like "github.com/my_org/my_module/a/b/c" into the segments
 	// separated by slashes. Omit the first segment which is the address; regardless
 	// of whether it's GitHub, GitLab, or whatever. Then put the remaining segments
 	// back together using periods. In the example, the result would be
-	// "myorg.mymodule.a.b.c"
+	// "my_org.my_module.a.b.c"
 	segments := strings.Split(packageName, "/")
 	segments = segments[1:]
 	return strings.Join(segments, ".")
