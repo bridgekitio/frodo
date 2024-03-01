@@ -15,6 +15,8 @@ type templateOption struct {
 	// Template is the path to a custom Go template that we'll use to render this artifact. By leaving
 	// this option blank you will just use the standard embedded template for that type of artifact.
 	Template string
+	// Force allows you to ignore last modified timestamps and force the generation to occur.
+	Force bool
 }
 
 // ToFileTemplate constructs a new 'FileTemplate' based on the 'Template' option on this command. When

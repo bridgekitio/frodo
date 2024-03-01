@@ -31,18 +31,25 @@ func (c GenerateDocs) Command() *cobra.Command {
 		},
 	}
 	cmd.Flags().StringVar(&request.Template, "template", "", "Path to a custom OpenAPI/Swagger/docs template file used to generate this artifact.")
+	cmd.Flags().BoolVar(&request.Force, "force", false, "Ignore file modification timestamps and generate the artifact no matter what.")
 	return cmd
 }
 
 // Exec takes all of the parsed CLI flags and generates the service's documentation artifact(s).
 func (c GenerateDocs) Exec(request *GenerateDocsRequest) error {
+	artifact := request.ToFileTemplate("openapi.yml")
+
+	if !request.Force && generate.UpToDate(request.InputFileName, artifact.Name) {
+		log.Printf("Skipping '%s'. Artifact is up to date '%s'", request.InputFileName, artifact.Name)
+		return nil
+	}
+
 	log.Printf("Parsing service definitions: %s", request.InputFileName)
 	ctx, err := parser.ParseFile(request.InputFileName)
 	if err != nil {
 		return err
 	}
 
-	artifact := request.ToFileTemplate("openapi.yml")
 	log.Printf("Generating artifact '%s'", artifact.Name)
 	return generate.File(ctx, artifact)
 }

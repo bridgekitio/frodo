@@ -19,6 +19,20 @@ type GenerateClientRequest struct {
 	Language string
 }
 
+// TemplateName translates the Language option into the name of the template we should use for generation.
+func (req GenerateClientRequest) TemplateName() string {
+	switch strings.ToLower(req.Language) {
+	case "go", "":
+		return "client.go"
+	case "js", "javascript", "node", "nodejs":
+		return "client.js"
+	case "dart", "flutter":
+		return "client.dart"
+	default:
+		return ""
+	}
+}
+
 // GenerateClient handles the registration and execution of the 'frodo client' CLI subcommand.
 type GenerateClient struct{}
 
@@ -36,21 +50,23 @@ func (c GenerateClient) Command() *cobra.Command {
 	}
 	cmd.Flags().StringVar(&request.Language, "language", "go", "The file extension of the target language (e.g. 'go' or 'js')")
 	cmd.Flags().StringVar(&request.Template, "template", "", "Path to a custom Go template file used to generate this artifact.")
+	cmd.Flags().BoolVar(&request.Force, "force", false, "Ignore file modification timestamps and generate the artifact no matter what.")
 	return cmd
 }
 
 // Exec takes all of the parsed CLI flags and generates the target client artifact.
 func (c GenerateClient) Exec(request *GenerateClientRequest) error {
-	switch strings.ToLower(request.Language) {
-	case "go", "":
-		return c.generate(request, request.ToFileTemplate("client.go"))
-	case "js", "javascript", "node", "nodejs":
-		return c.generate(request, request.ToFileTemplate("client.js"))
-	case "dart", "flutter":
-		return c.generate(request, request.ToFileTemplate("client.dart"))
-	default:
+	templateName := request.TemplateName()
+	if templateName == "" {
 		return fmt.Errorf("unsupported client language")
 	}
+
+	if !request.Force && generate.UpToDate(request.InputFileName, templateName) {
+		log.Printf("Skipping '%s'. Artifact is up to date '%s'", request.InputFileName, templateName)
+		return nil
+	}
+
+	return c.generate(request, request.ToFileTemplate(templateName))
 }
 
 // generate parses the input service definition file and creates an output client/gateway
