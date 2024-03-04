@@ -58,6 +58,12 @@ func Status(err error) int {
 		return errCode.Code()
 	}
 
+	// This is how AWS reports HTTP style errors, so make this convenient.
+	var errHTTPStatusCode errorWithHTTPStatusCode
+	if errors.As(err, &errHTTPStatusCode) {
+		return errHTTPStatusCode.HTTPStatusCode()
+	}
+
 	return http.StatusInternalServerError
 }
 
@@ -280,6 +286,11 @@ type errorWithStatusCode interface {
 type errorWithCode interface {
 	error
 	Code() int
+}
+
+type errorWithHTTPStatusCode interface {
+	error
+	HTTPStatusCode() int
 }
 
 // ErrorHandler is the generic function signature for something that accepts errors
