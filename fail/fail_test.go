@@ -50,6 +50,22 @@ func (suite *FailSuite) TestStatus() {
 	suite.Equal(500, fail.Status(errWithStatusCode{statusCode: 500}))
 	suite.Equal(503, fail.Status(errWithStatusCode{statusCode: 503}))
 	suite.Equal(404, fail.Status(errWithStatusCode{statusCode: 404}))
+	suite.Equal(500, fail.Status(errorWithHTTPStatusCode{httpStatusCode: 500}))
+	suite.Equal(503, fail.Status(errorWithHTTPStatusCode{httpStatusCode: 503}))
+	suite.Equal(404, fail.Status(errorWithHTTPStatusCode{httpStatusCode: 404}))
+
+	// Wrapping w/ %w verb should still allow status retrieval.
+	suite.Equal(401, fail.Status(fmt.Errorf("wrapped failure: %w", errWithCode{code: 401})))
+	suite.Equal(401, fail.Status(fmt.Errorf("wrapped failure: %w", errWithStatusCode{statusCode: 401})))
+	suite.Equal(401, fail.Status(fmt.Errorf("wrapped failure: %w", errorWithHTTPStatusCode{httpStatusCode: 401})))
+
+	var wrapped error
+	wrapped = errWithCode{code: 401}
+	wrapped = fmt.Errorf("wrapped failure 1: %w", wrapped)
+	wrapped = fmt.Errorf("wrapped failure 2: %w", wrapped)
+	wrapped = fmt.Errorf("wrapped failure 3: %w", wrapped)
+	wrapped = fmt.Errorf("wrapped failure 4: %w", wrapped)
+	suite.Equal(401, fail.Status(wrapped))
 }
 
 func (suite *FailSuite) TestUnexpected() {
@@ -410,5 +426,17 @@ func (err errWithStatusCode) StatusCode() int {
 }
 
 func (err errWithStatusCode) Error() string {
+	return ""
+}
+
+type errorWithHTTPStatusCode struct {
+	httpStatusCode int
+}
+
+func (err errorWithHTTPStatusCode) HTTPStatusCode() int {
+	return err.httpStatusCode
+}
+
+func (err errorWithHTTPStatusCode) Error() string {
 	return ""
 }
