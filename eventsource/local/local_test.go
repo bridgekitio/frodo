@@ -5,6 +5,7 @@ package local_test
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -428,4 +429,36 @@ func (suite *LocalBrokerSuite) TestUnsubscribe() {
 	suite.assertFired(results, []string{
 		"Foo:I'm Back!",
 	})
+}
+
+// This test ensures that no matter what context you pass to broker.Publish(), that context does NOT propagate to
+// your subscriber(s). They should each get a clean context to begin their execution.
+func (suite *LocalBrokerSuite) TestSubscriberContext() {
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+
+	broker := local.Broker()
+
+	publishCtx := context.WithValue(context.Background(), "foo", "bar")
+
+	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+		foo, _ := ctx.Value("foo").(string)
+		suite.Require().Equal("", foo, "Subscriber context should not be the same as publisher context")
+
+		wg.Done()
+		return nil
+	})
+
+	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+		foo, _ := ctx.Value("foo").(string)
+		suite.Require().Equal("", foo, "Subscriber context should not be the same as publisher context")
+
+		wg.Done()
+		return nil
+	})
+
+	err := broker.Publish(publishCtx, "test.context", []byte("Isolate Contexts"))
+	suite.Require().NoError(err, "Isolating subscriber context shouldn't break publishing.")
+
+	wg.Wait()
 }

@@ -67,7 +67,14 @@ func (b *broker) Publish(ctx context.Context, key string, payload []byte) error 
 			continue
 		}
 
-		go b.publishMessage(ctx, sub, eventsource.EventMessage{
+		// Do NOT use 'ctx' to pass along to the subscribers. We have no idea about the source/timeout status of
+		// the incoming context, and it's possible that the Publish() is being performed from a context that's just
+		// about to end (like an HTTP request). That's fine for the purposes of triggering the broadcast, but the
+		// subscribers on the other end should start with ah blank context. If you were using a distributed broker
+		// like NATS, Redis, etc. your handler would be starting with a different context than the publisher anyway.
+		// This just makes the local broker behave more like a distributed one and avoids weird bugs where the context
+		// is closed elsewhere while async subscribers are working.
+		go b.publishMessage(context.Background(), sub, eventsource.EventMessage{
 			Timestamp: b.now(),
 			Key:       key,
 			Payload:   payload,
