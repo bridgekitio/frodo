@@ -438,22 +438,20 @@ func (suite *LocalBrokerSuite) TestSubscriberContext() {
 	wg.Add(2)
 
 	broker := local.Broker()
-
 	publishCtx := context.WithValue(context.Background(), "foo", "bar")
 
 	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+		defer wg.Done()
 		foo, _ := ctx.Value("foo").(string)
 		suite.Require().Equal("", foo, "Subscriber context should not be the same as publisher context")
-
-		wg.Done()
 		return nil
 	})
 
 	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+		defer wg.Done()
+
 		foo, _ := ctx.Value("foo").(string)
 		suite.Require().Equal("", foo, "Subscriber context should not be the same as publisher context")
-
-		wg.Done()
 		return nil
 	})
 
