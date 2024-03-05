@@ -6,6 +6,7 @@ import (
 	"github.com/bridgekitio/frodo/codec"
 	"github.com/bridgekitio/frodo/metadata"
 	"github.com/bridgekitio/frodo/services"
+	"github.com/rs/cors"
 )
 
 // HTTPMiddlewareFunc is a function that can intercept HTTP requests going through your API
@@ -135,5 +136,17 @@ func restoreMetadataHeaders() HTTPMiddlewareFunc {
 	return func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
 		ctx := metadata.WithRequestHeaders(req.Context(), req.Header)
 		next(w, req.WithContext(ctx))
+	}
+}
+
+// applyCorsHeaders adds the middleware to apply CORS preflight headers to the necessary requests.
+func applyCorsHeaders(c *cors.Cors) HTTPMiddlewareFunc {
+	if c != nil {
+		return c.ServeHTTP
+	}
+
+	// You're not doing CORS, so just nop this step and move on.
+	return func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+		next(w, req)
 	}
 }

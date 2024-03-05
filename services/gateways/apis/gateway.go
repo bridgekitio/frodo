@@ -16,6 +16,7 @@ import (
 	"github.com/bridgekitio/frodo/internal/naming"
 	"github.com/bridgekitio/frodo/internal/quiet"
 	"github.com/bridgekitio/frodo/services"
+	"github.com/rs/cors"
 )
 
 // NewGateway creates a new API Gateway that allows your service to accept incoming requests
@@ -55,6 +56,7 @@ type Gateway struct {
 	tlsCert         string
 	tlsKey          string
 	notFoundHandler http.HandlerFunc
+	cors            *cors.Cors
 }
 
 // Type returns "API" to properly tag this type of gateway.
@@ -85,6 +87,7 @@ func (gw *Gateway) registerNotFound() {
 	customFuncs := gw.middleware
 	standardFuncs := HTTPMiddlewareFuncs{
 		recoverFromPanic(gw.codecs.DefaultEncoder()), // If your custom middleware or handler funcs suck, don't die.
+		applyCorsHeaders(gw.cors),
 	}
 
 	handler := standardFuncs.Append(customFuncs...).Then(gw.notFoundHandler)
@@ -143,6 +146,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 		restoreMetadataEndpoint(endpoint, route),
 		restoreTraceID(),
 		restoreAuthorization(),
+		applyCorsHeaders(gw.cors),
 	}
 	httpHandler := standardFuncs.Append(customFuncs...).Then(gw.toHTTPHandler(endpoint, route))
 
@@ -161,6 +165,11 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 }
 
 func (gw *Gateway) registerOptions(path string) {
+	// Only do this if the user explicitly enabled CORS
+	if gw.cors == nil {
+		return
+	}
+
 	// I realize that recovering from panics makes the baby jesus cry. This is to handle the case where you
 	// register multiple service functions with the same path, but different methods. For instance:
 	//
@@ -185,7 +194,7 @@ func (gw *Gateway) registerOptions(path string) {
 		recover()
 	}()
 
-	gw.router.HandleFunc("OPTIONS "+path, gw.middleware.Then(gw.methodNotAllowedHandler))
+	gw.router.HandleFunc("OPTIONS "+path, gw.middleware.Then(gw.cors.HandlerFunc))
 }
 
 func (gw *Gateway) toHTTPHandler(endpoint services.Endpoint, route services.EndpointRoute) http.HandlerFunc {
@@ -517,3 +526,16 @@ func WithNotFound(handler http.HandlerFunc) GatewayOption {
 		gw.notFoundHandler = handler
 	}
 }
+
+// WithCORS lets you customize what happens during the CORS preflight OPTIONS request. The default behavior
+// simply returns a 404, but you can enable this to support CORS preflight requests.
+func WithCORS(options PreflightOptions) GatewayOption {
+	return func(gw *Gateway) {
+		gw.cors = cors.New(cors.Options(options))
+	}
+}
+
+// PreflightOptions manages the knobs you can turn to control how CORS behaves in your API gateway. Yes, this really
+// is just an alias to the https://github.com/rs/cors options. It's the gold standard for CORS in the Go ecosystem,
+// so we're just providing a convenient way to plug it in.
+type PreflightOptions cors.Options
