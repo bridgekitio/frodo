@@ -10,12 +10,12 @@ import (
 	"github.com/bridgekitio/frodo/services"
 )
 
-//go:generate ../../out/frodo server  $GOFILE
-//go:generate ../../out/frodo client  $GOFILE
-//go:generate ../../out/frodo client  $GOFILE --language=js
-//go:generate ../../out/frodo client  $GOFILE --language=dart
-//go:generate ../../out/frodo mock    $GOFILE
-//go:generate ../../out/frodo docs    $GOFILE
+//go:generate ../../out/frodo server  $GOFILE --force
+//go:generate ../../out/frodo client  $GOFILE --force
+//go:generate ../../out/frodo client  $GOFILE --force --language=js
+//go:generate ../../out/frodo client  $GOFILE --force --language=dart
+//go:generate ../../out/frodo mock    $GOFILE --force
+//go:generate ../../out/frodo docs    $GOFILE --force
 
 // SampleService is a mix of different options, parameter setups, and responses so that we can
 // run integration tests using our code-generated clients. Each method is nothing special, but

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"strconv"
 	"strings"
 	"sync"
@@ -97,9 +98,17 @@ func (b *broker) publishMessage(ctx context.Context, sub *subscription, msg even
 }
 
 func (b *broker) Subscribe(key string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
-	// We want this handler to absolutely fire no matter what other subscribers there are,
-	// so create a unique group id, making this a consumer group of 1.
-	group := strconv.FormatInt(time.Now().UnixNano(), 10)
+	// We want this handler to absolutely fire no matter what other subscribers exist. Even if there are other
+	// subscribers for the same key, we want ALL of them to fire because they're not defined in the same group.
+	//
+	// To accomplish this, we register this subscriber as a group-of-one. We create a unique group key for this
+	// group-of-one. The "local.broker.isolated" prefix is just to avoid potential collisions w/ real group names.
+	// Originally, the unique key was just an incremented uint64, but that wreaked havoc with my unit tests because
+	// the auto-generated group keys were "1", "2", etc. and the explicit group keys in the test suite were "1", "2",
+	// etc. Now, we come up with random group keys that should minimize collisions. Not good enough if I were trying
+	// to displace NATS as a distributed, broker, but perfectly fine for a reference implementation of the Event
+	// Gateway in frodo.
+	group := "isolated." + strconv.FormatUint(rand.Uint64(), 10)
 	return b.SubscribeGroup(key, group, handlerFunc)
 }
 
@@ -215,7 +224,7 @@ func (sub *subscription) Unsubscribe() error {
 // ---------------------------------
 
 type subscriptionRoundRobin struct {
-	// index is our cursor that indicates the next subscription to return in the round robin.
+	// index is our cursor that indicates the next subscription to return in the round-robin.
 	index int
 	// subscriptions is the raw slice/ring of handlers we're rotating through.
 	subscriptions []*subscription

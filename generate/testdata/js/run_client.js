@@ -4,7 +4,8 @@
 process.removeAllListeners('warning')
 
 // These should be copied into place when we run 'make generate' for testing.
-const {SampleServiceClient} = require('./sample_service.gen.client');
+// const {SampleServiceClient} = require('./sample_service.gen.client');
+import {SampleServiceClient} from './sample_service.gen.client.js';
 
 async function main() {
     if (process.argv.length < 4) {

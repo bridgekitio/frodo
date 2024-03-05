@@ -83,14 +83,12 @@ func OutputPath(inputPath string, templateName string) string {
 func UpToDate(inputPath string, templateName string) bool {
 	inputStat, err := os.Stat(inputPath)
 	if err != nil {
-		fmt.Println("Unable to stat() input file: " + inputPath)
 		return false
 	}
 
 	outputPath := OutputPath(inputPath, templateName)
 	outputStat, err := os.Stat(outputPath)
 	if err != nil {
-		fmt.Println("Unable to stat() output file: " + outputPath)
 		return false
 	}
 
