@@ -1,5 +1,7 @@
 # Frodo
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/bridgekitio/frodo)](https://goreportcard.com/report/github.com/bridgekitio/frodo)
+
 *That's just, like, your opinion, man!*
 
 Frod is an opinionated code generator and runtime library that helps you
