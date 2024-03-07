@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/url"
-	"strconv"
+	"strings"
 	"time"
 
 	"github.com/bridgekitio/frodo/codec"
@@ -14,6 +14,10 @@ import (
 	"github.com/bridgekitio/frodo/services"
 )
 
+// errorKeySuffix represents the thing we append to the end of the key we publish to the broker to indicate that this
+// should route to error listeners, not success listeners.
+const errorKeySuffix = ":Error"
+
 // message is the envelope used by the event gateway to broadcast events to other services
 // that might want to perform other tasks based on this event. It contains all of the information
 // required for a subscriber to know what event occurred, the return value of the original call,
@@ -21,10 +25,8 @@ import (
 type message struct {
 	// Key is the key/topic that this message is being published to.
 	Key string
-	// ServiceName is the name of the service that generated this event.
-	ServiceName string
-	// Name is the name of the service method that generated this event.
-	Name string
+	// Route contains useful information about the service method invocation that triggered this publish.
+	Route metadata.EndpointRoute
 	// Metadata represents the encoded version of all metadata attributes stored on
 	// the context that we want to follow the caller as it goes from service to service.
 	Metadata metadata.EncodedBytes
@@ -42,11 +44,21 @@ type message struct {
 	//   "AuditTrail.Modified": ["2022-11-11T18:55:43+00:00"],
 	// }
 	Values url.Values
+	// ErrorStatus represents the HTTP-style status code of the failure. Will be 0 if the source call didn't fail.
+	ErrorStatus int
+	// ErrorMessage returns the "err.Error()" value of the failure (if there was one). Will be "" if the call didn't fail.
+	ErrorMessage string
+}
+
+// ErrorHandler returns true if this published message represents a method call that failed and is being routed to
+// something like "FooService.Bar:Error" rather than "FooService.Bar".
+func (m message) ErrorHandler() bool {
+	return strings.HasSuffix(m.Key, errorKeySuffix)
 }
 
 // publishMiddleware defines the unit of work that every service endpoint should perform to publish
 // their "I just finished this service function" event; the thing that drives our event gateway.
-func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEncoder codec.ValueEncoder, errorHandler fail.ErrorHandler) services.MiddlewareFunc {
+func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEncoder codec.ValueEncoder, errorListener ErrorListener) services.MiddlewareFunc {
 	return func(ctx context.Context, req any, next services.HandlerFunc) (any, error) {
 		response, err := next(ctx, req)
 
@@ -68,9 +80,8 @@ func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEn
 			defer cancel()
 
 			msg := message{
-				ServiceName: endpoint.ServiceName,
-				Name:        endpoint.Name,
-				Metadata:    encodedMetadata,
+				Route:    endpoint,
+				Metadata: encodedMetadata,
 			}
 
 			switch {
@@ -78,24 +89,19 @@ func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEn
 				msg.Key = endpoint.QualifiedName()
 				msg.Values = valueEncoder.EncodeValues(response)
 			case err != nil:
-				status := strconv.FormatInt(int64(fail.Status(err)), 10)
-				msg.Key = endpoint.QualifiedName() + ".Error"
+				msg.Key = endpoint.QualifiedName() + errorKeySuffix
 				msg.Values = valueEncoder.EncodeValues(req)
-				msg.Values.Set("Error.Code", status)
-				msg.Values.Set("Error.Status", status)
-				msg.Values.Set("Error.StatusCode", status)
-				msg.Values.Set("Error.HTTPStatusCode", status)
-				msg.Values.Set("Error.Message", err.Error())
-				msg.Values.Set("Error.Error", err.Error())
+				msg.ErrorStatus = fail.Status(err)
+				msg.ErrorMessage = err.Error()
 			}
 
 			buf := &bytes.Buffer{}
 			if err = encoder.Encode(buf, msg); err != nil {
-				errorHandler(err)
+				errorListener(endpoint, err)
 				return
 			}
 			if err = broker.Publish(pubCtx, msg.Key, buf.Bytes()); err != nil {
-				errorHandler(err)
+				errorListener(endpoint, err)
 				return
 			}
 		}()

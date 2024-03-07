@@ -6,6 +6,9 @@ import (
 	"net/http"
 )
 
+// Error is simply a shorthand for the fail package's StatusError that includes an HTTP status code w/ your error message.
+type Error StatusError
+
 // StatusError is an error that maintains not just an error message but an HTTP
 // compatible status code indicating the type/class of error. It's useful for helping
 // you figure out downstream if an occurred because the user didn't have rights or

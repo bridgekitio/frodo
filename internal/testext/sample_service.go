@@ -121,6 +121,14 @@ type SampleService interface {
 	// ON OtherService.SpaceOut
 	ListenerB(context.Context, *SampleRequest) (*SampleResponse, error)
 
+	// FailAlways will return an error no matter what. It's only goal in life is to trigger OnFailAlways.
+	FailAlways(ctx context.Context, request *FailAlwaysRequest) (*FailAlwaysResponse, error)
+
+	// OnFailAlways should trigger after FailAlways inevitably shits the bed.
+	//
+	// ON SampleService.FailAlways:Error
+	OnFailAlways(ctx context.Context, request *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error)
+
 	// SecureWithRoles lets us test role based security by looking at the 'roles' doc option.
 	//
 	// ROLES admin.write,user.{ID}.write ,   user.{User.ID}.admin, junk.{NotReal}.crap
@@ -287,4 +295,31 @@ type SampleRedirectResponse struct {
 
 func (res SampleRedirectResponse) Redirect() string {
 	return res.URI
+}
+
+type FailAlwaysRequest struct {
+	RequestValue string
+}
+
+type FailAlwaysResponse struct {
+	ResponseValue string
+}
+
+// EventError captures the various ways you can bind the error message and its status codes
+type EventError struct {
+	Message        string
+	Error          string
+	Code           int
+	Status         int
+	StatusCode     int
+	HTTPStatusCode int
+}
+
+type FailAlwaysErrorRequest struct {
+	Error         EventError
+	RequestValue  string
+	ResponseValue string
+}
+
+type FailAlwaysErrorResponse struct {
 }
