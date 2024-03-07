@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"net/url"
+	"strconv"
 	"time"
 
 	"github.com/bridgekitio/frodo/codec"
@@ -18,6 +19,8 @@ import (
 // required for a subscriber to know what event occurred, the return value of the original call,
 // and the metadata that is being carried over to this handler.
 type message struct {
+	// Key is the key/topic that this message is being published to.
+	Key string
 	// ServiceName is the name of the service that generated this event.
 	ServiceName string
 	// Name is the name of the service method that generated this event.
@@ -46,18 +49,6 @@ type message struct {
 func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEncoder codec.ValueEncoder, errorHandler fail.ErrorHandler) services.MiddlewareFunc {
 	return func(ctx context.Context, req any, next services.HandlerFunc) (any, error) {
 		response, err := next(ctx, req)
-		if err != nil {
-			// Will need to see my own need and get feedback on if we need to publish a
-			// message to some errors queue. For instance, if the UserService.Create method
-			// fails, should we publish a message to something like "ERRORS.UserService.Create"
-			// so a single handler can ingest every failure we generate? Or should we publish
-			// to "UserService.Create.Error" so it's easier for us to tie handlers back to
-			// your original service handlers.
-			//
-			// For now, we're going to assume that your middleware and standard service handling
-			// is enough to give you insight into system failures.
-			return response, err
-		}
 
 		// We want the successful invocation to be propagated back to the caller as quickly
 		// as possible, so don't wait for event publishing to happen in order to do that. This
@@ -80,7 +71,22 @@ func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEn
 				ServiceName: endpoint.ServiceName,
 				Name:        endpoint.Name,
 				Metadata:    encodedMetadata,
-				Values:      valueEncoder.EncodeValues(response),
+			}
+
+			switch {
+			case err == nil:
+				msg.Key = endpoint.QualifiedName()
+				msg.Values = valueEncoder.EncodeValues(response)
+			case err != nil:
+				status := strconv.FormatInt(int64(fail.Status(err)), 10)
+				msg.Key = endpoint.QualifiedName() + ".Error"
+				msg.Values = valueEncoder.EncodeValues(req)
+				msg.Values.Set("Error.Code", status)
+				msg.Values.Set("Error.Status", status)
+				msg.Values.Set("Error.StatusCode", status)
+				msg.Values.Set("Error.HTTPStatusCode", status)
+				msg.Values.Set("Error.Message", err.Error())
+				msg.Values.Set("Error.Error", err.Error())
 			}
 
 			buf := &bytes.Buffer{}
@@ -88,11 +94,11 @@ func publishMiddleware(broker eventsource.Broker, encoder codec.Encoder, valueEn
 				errorHandler(err)
 				return
 			}
-			if err = broker.Publish(pubCtx, endpoint.QualifiedName(), buf.Bytes()); err != nil {
+			if err = broker.Publish(pubCtx, msg.Key, buf.Bytes()); err != nil {
 				errorHandler(err)
 				return
 			}
 		}()
-		return response, nil
+		return response, err
 	}
 }
