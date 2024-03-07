@@ -438,6 +438,68 @@ curl -d '{...}' http://localhost:9000/orders
 # and you should have 2 emails in your inbox
 ```
 
+### Trigger Invocation On Failure Instead of Success
+
+We just saw how you can use `ON OrderService.PlaceOrder` to trigger some other operation when
+a user successfully places an order. But what about when an order fails? It only takes a minor
+tweak to your `ON` option to enable this. Let's say that you want to email your internal
+support team to follow up on all failed orders. Here's how we'd accomplish that. Just append `:Error`
+to the operation you want to trigger on:
+
+```go
+type OrderService interface {
+    // ... smae stuff as before ...
+
+    // FailedOrderFollowUp fires when an attempt to place an order fails. This will email
+    // our internal support team, so that they can contact the customer to try again.
+    //
+    // HTTP OMIT
+    // ON OrderService.PlaceOrder:Error
+    FailedOrderFollowUp(context.Context, *FailedOrderFollowUpRequest) (*FailedOrderFollowUpResponse, error)
+}
+
+type OrderError struct {
+    Status  int
+    Message string
+}
+
+// All of this will "magically" get populated by the event gateway.
+type FailedOrderFollowUpRequest struct {
+    // Fields that will capture the error returned by PlaceOrder()    
+    Error OrderError
+    // Fields that match PlaceOrderRequest
+    OrderID  string
+    UserID   string
+    ItemIDs  string[]
+    DateTime time.Time
+}
+
+// You can make life easier/cleaner by embedding the equivalent
+// types. You'll get the exact same result as the one above, and
+// you won't need to redefine any types to make it work!
+type FailedOrderFollowUpRequest struct {
+    fail.Error
+    PlaceOrderRequest
+}
+```
+
+Triggering the invocation should be straightforward. If you want to fire on the success of the operation, you
+`ON Service.Name` and if you want to trigger on the failure then you `ON Service.Name:Error`.
+
+What your method actually receives, however, is a little different. In the success case, the request of your
+event handler needed to have overlapping fields with the *response* of the original method. When listening
+for errors, you likely won't get a valid response... it's probably nil because you returned an error before
+the operation completed.
+
+Instead, your handler will receive the fields from
+the *request* of the original method. This gives you an opportunity to analyze the inputs that caused the original
+failure and do something intelligent with them.
+
+Additionally, the event gateway will provide you with the message and status code/type of error that caused
+this to fire in the first place. Again, this just gives you more information to properly handle the error. For
+instance, you might want to send one email if the error was a declined credit card, and a different
+one when the error was a bad DB connection.
+
 ### Distributed Events Using NATS JetStream
 
 The order example above works great if you're running everything
@@ -730,7 +792,7 @@ func (svc UserService) CreateToken(ctx context.Context, req *CreateTokenRequest)
 // }
 ```
 
-### Errors In Async Event Handlers
+### Errors In Event-Based Methods
 
 Handling errors in RPC calls is fairly easy. The clients that
 Frodo generate return the error. Simple.
@@ -740,23 +802,33 @@ based on events, you don't really have control over that code, so
 we need to do something a little different to handle errors
 that might occur during those asynchronous flows.
 
-You can give the Event Gateway a callback function that Frodo will
-invoke any time an error occurs processing event-based service operations.
+You can use `ON Service.AsyncMethod:Error` to listen for errors on event-based calls just
+like you would an RPC call. That, however, only listens for errors on that one, specific operation.
+
+If you would like a single stream of all errors that come up during event-based invocations,
+you can provide the `WithErrorListener` option when setting up the gateway.
 
 ```go
 func main() {
     // ...
     server.Listen(events.NewGateway(
         events.WithBroker(natsBroker),
-        events.WithErrorHandler(handleEventError),
+        events.WithErrorListener(handleEventError),
     ))
     server.Run()
 }
 
-func handleEventError(err error) {
-    // Don't panic...
+// handleEventError fires EVERY time ANY event-based method invocation fails.
+func handleEventError(route metadata.EndpointRoute, err error) {
+    // This will log something like:
+    // NotificationService.WelcomeEmail failed: invalid email
+    logger.Error(route.QualifiedName() + " failed: " + err.Error())
 }
 ```
+
+While this example just logged the error, it's up to you how to use this. You can try to recover if it's
+something like a database connection failure. Or you can pump this data to your telemetry system. Or you
+can just call `os.Exit(1)` because to heck with your users :)
 
 ## Middleware
 

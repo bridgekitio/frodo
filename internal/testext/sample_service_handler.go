@@ -3,6 +3,7 @@ package testext
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -162,6 +163,28 @@ func (s SampleServiceHandler) ListenerA(_ context.Context, req *SampleRequest) (
 func (s SampleServiceHandler) ListenerB(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
 	s.Sequence.Append("ListenerB:" + req.Text)
 	return &SampleResponse{Text: "ListenerB:" + req.Text}, nil
+}
+
+func (s SampleServiceHandler) FailAlways(_ context.Context, _ *FailAlwaysRequest) (*FailAlwaysResponse, error) {
+	s.Sequence.Append("FailAlways")
+
+	// As part of our test for firing OnFailAlways, we want to make sure that it binds the FailAlwaysRequest values
+	// rather than the FailAlwaysResponseValues. The "Do Not Abide" should be discarded by the event gateway.
+	return &FailAlwaysResponse{ResponseValue: "Do Not Abide"}, fail.NotImplemented("a world of pain")
+}
+
+func (s SampleServiceHandler) OnFailAlways(_ context.Context, req *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error) {
+	// We want to make sure that we bound the REQUEST values rather than the response values of the failed call
+	// to FailAlways. After all, the request failed... there are no valid response values to send along to this.
+	s.Sequence.Append("OnFailAlways.Request:" + req.RequestValue)
+	s.Sequence.Append("OnFailAlways.Response:" + req.ResponseValue)
+	s.Sequence.Append("OnFailAlways.Error.Error:" + req.Error.Error)
+	s.Sequence.Append("OnFailAlways.Error.Message:" + req.Error.Message)
+	s.Sequence.Append("OnFailAlways.Error.Code:" + fmt.Sprintf("%d", req.Error.Code))
+	s.Sequence.Append("OnFailAlways.Error.Status:" + fmt.Sprintf("%d", req.Error.Status))
+	s.Sequence.Append("OnFailAlways.Error.StatusCode:" + fmt.Sprintf("%d", req.Error.StatusCode))
+	s.Sequence.Append("OnFailAlways.Error.HTTPStatusCode:" + fmt.Sprintf("%d", req.Error.HTTPStatusCode))
+	return &FailAlwaysErrorResponse{}, nil
 }
 
 func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSecurityRequest) (*SampleSecurityResponse, error) {

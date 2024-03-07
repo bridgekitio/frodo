@@ -234,9 +234,11 @@ func (decoder JSONDecoder) writeDecodingValueJSON(buf *bytes.Buffer, value strin
 		if strings.HasPrefix(value, `"`) && strings.HasSuffix(value, `"`) {
 			buf.WriteString(value)
 		} else {
-			buf.WriteString(`"`)
-			buf.WriteString(value)
-			buf.WriteString(`"`)
+			// Make sure that if your string is `Hello "WORLD"`, we don't make the value JSON {"Foo": "Hello "WORLD""}
+			// which is invalid and will break the decoder. Instead, escape the raw string, so we get a nice
+			// decode-friendly value like {"Foo": "Hello \"WORLD\""}
+			escapedJSON, _ := json.Marshal(value)
+			buf.WriteString(string(escapedJSON))
 		}
 	case jsonTypeNumber, jsonTypeBool:
 		buf.WriteString(value)

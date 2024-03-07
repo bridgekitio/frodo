@@ -78,6 +78,9 @@ func (suite *ServerSuite) responseText(res any) string {
 	if otherRes, ok := res.(*testext.OtherResponse); ok {
 		return otherRes.Text
 	}
+	if failRes, ok := res.(*testext.FailAlwaysResponse); ok {
+		return failRes.ResponseValue
+	}
 	return "<invalid response type>"
 }
 
@@ -320,4 +323,41 @@ func (suite *ServerSuite) TestHttpMiddlewareFireOnce() {
 	suite.Require().NoError(err)
 	suite.Equal("Defaults:Hello", suite.responseText(res))
 	suite.Equal([]string{"1:BEFORE", "2:BEFORE", "2:AFTER", "1:AFTER"}, middlewareSequence.Values())
+}
+
+// Ensures that you can invoke a method which triggers the event gateway to run another method when some other
+// service method FAILS (i.e. returns a non-nil error).
+func (suite *ServerSuite) TestEventErrorChain() {
+	server, calls, shutdown := suite.start()
+	defer shutdown()
+
+	calls.Reset()
+	res, err := server.Invoke(context.Background(), "SampleService", "FailAlways", &testext.FailAlwaysRequest{RequestValue: "Abide"})
+	suite.Require().Error(err)
+	suite.Equal("Do Not Abide", suite.responseText(res)) // the result of the failed call - it DOES return a value
+
+	// Some key aspects of what we're testing here. First, FailAlwaysErrorRequest has attributes that match both the
+	// request AND response of the method that is supposed to fail.
+	//
+	// (A) We expect that, on failure, the gateway will send the REQUEST data from the failed method call, not the
+	// response data. After all, the call failed so there probably isn't any valid response data to send over. By
+	// sending the request data, it gives the error handling subscriber the chance to look at the inputs of the
+	// failed call and do something intelligent with it.
+	//
+	// (B) The error that occurred will be marshalled to the subscriber and bound to various "Error.XXX" fields. We
+	// support binding to all manner of name to give the same flexibility that we do in the 'fail' package.
+	suite.assertInvoked(calls, []string{
+		// Our initial call a few lines above.
+		"FailAlways",
+
+		// The :Error handler
+		"OnFailAlways.Request:Abide",
+		"OnFailAlways.Response:",
+		"OnFailAlways.Error.Error:a world of pain",
+		"OnFailAlways.Error.Message:a world of pain",
+		"OnFailAlways.Error.Code:501",
+		"OnFailAlways.Error.Status:501",
+		"OnFailAlways.Error.StatusCode:501",
+		"OnFailAlways.Error.HTTPStatusCode:501",
+	})
 }
