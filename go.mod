@@ -12,6 +12,9 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
+	github.com/gobwas/httphead v0.1.0 // indirect
+	github.com/gobwas/pool v0.2.1 // indirect
+	github.com/gobwas/ws v1.3.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/klauspost/compress v1.17.2 // indirect
 	github.com/nats-io/nkeys v0.4.7 // indirect

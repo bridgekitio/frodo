@@ -15,6 +15,7 @@ import (
 	"github.com/bridgekitio/frodo/fail"
 	"github.com/bridgekitio/frodo/internal/naming"
 	"github.com/bridgekitio/frodo/internal/quiet"
+	"github.com/bridgekitio/frodo/internal/radix"
 	"github.com/bridgekitio/frodo/services"
 	"github.com/rs/cors"
 )
@@ -25,6 +26,7 @@ import (
 func NewGateway(address string, options ...GatewayOption) *Gateway {
 	router := http.NewServeMux()
 	codecs := codec.New()
+	websockets := radix.New[*Websocket]()
 	gw := Gateway{
 		router:          router,
 		codecs:          codecs,
@@ -33,12 +35,12 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 		server:          &http.Server{Addr: address, Handler: router},
 		tlsCert:         "",
 		tlsKey:          "",
+		websockets:      &websockets,
 		notFoundHandler: defaultNotFoundHandler(codecs),
 	}
 	for _, option := range options {
 		option(&gw)
 	}
-
 	return &gw
 }
 
@@ -56,6 +58,7 @@ type Gateway struct {
 	tlsCert         string
 	tlsKey          string
 	notFoundHandler http.HandlerFunc
+	websockets      *radix.Tree[*Websocket]
 	cors            *cors.Cors
 }
 
@@ -141,6 +144,7 @@ func (gw *Gateway) Register(endpoint services.Endpoint, route services.EndpointR
 	customFuncs := gw.middleware
 	standardFuncs := HTTPMiddlewareFuncs{
 		recoverFromPanic(gw.codecs.DefaultEncoder()),
+		prepareContext(),
 		restoreMetadata(),
 		restoreMetadataHeaders(),
 		restoreMetadataEndpoint(endpoint, route),
@@ -264,6 +268,14 @@ func (gw *Gateway) toHTTPHandler(endpoint services.Endpoint, route services.Endp
 // using the TLS cert/config you provided when creating the Gateway.
 func (gw *Gateway) UseTLS() bool {
 	return gw.tlsCert != "" || gw.tlsKey != "" || gw.server.TLSConfig != nil
+}
+
+// Middleware adds the API-level features that need to be accessible even when you are handling a call
+// that came through the event gateway.
+func (gw *Gateway) Middleware() services.MiddlewareFuncs {
+	return services.MiddlewareFuncs{
+		websocketRegistryMiddleware(gw.websockets),
+	}
 }
 
 // methodNotAllowedHandler just replies with a 405 error status no matter what. It's the
@@ -539,3 +551,9 @@ func WithCORS(options PreflightOptions) GatewayOption {
 // is just an alias to the https://github.com/rs/cors options. It's the gold standard for CORS in the Go ecosystem,
 // so we're just providing a convenient way to plug it in.
 type PreflightOptions cors.Options
+
+// requestContextKey lets us store the http.Request on the context of incoming requests.
+type requestContextKey struct{}
+
+// requestContextKey lets us store the http.ResponseWriter on the context of incoming requests.
+type responseContextKey struct{}

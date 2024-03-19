@@ -1,6 +1,7 @@
 package apis
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/bridgekitio/frodo/codec"
@@ -135,6 +136,20 @@ func restoreTraceID() HTTPMiddlewareFunc {
 func restoreMetadataHeaders() HTTPMiddlewareFunc {
 	return func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
 		ctx := metadata.WithRequestHeaders(req.Context(), req.Header)
+		next(w, req.WithContext(ctx))
+	}
+}
+
+// prepareContext stores the request and response writer on the context for the duration of the call. We will
+// not provide the user direct access to these as we really want to promote the idea that you shouldn't be dealing
+// with the HTTP request/response as much as possible. Instead, these are in place so that we can inject our own
+// logic by privately accessing these to do things like upgrade your connection to a websocket. The user never sees
+// the HTTP-ness of it. They just ask for a socket and get one.
+func prepareContext() HTTPMiddlewareFunc {
+	return func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
+		ctx := req.Context()
+		ctx = context.WithValue(ctx, requestContextKey{}, req)
+		ctx = context.WithValue(ctx, responseContextKey{}, w)
 		next(w, req.WithContext(ctx))
 	}
 }
