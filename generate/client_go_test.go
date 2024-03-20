@@ -434,3 +434,37 @@ func (suite *GoClientSuite) TestRoles() {
 		Expected: []string{"admin.write", "user.123.write", "user.456.admin", "junk..crap"},
 	})
 }
+
+func (suite *GoClientSuite) TestRolesAliased() {
+	address, shutdown := suite.startServer()
+	defer shutdown()
+	ctx, client := suite.init(address)
+
+	type testCase struct {
+		ID       string
+		FancyID  testext.StringLike
+		Expected []string
+	}
+
+	runTest := func(c testCase) {
+		res, err := client.SecureWithRolesAliased(ctx, &testext.SampleSecurityRequest{
+			ID:      c.ID,
+			FancyID: c.FancyID,
+			User:    testext.SampleUser{ID: c.ID, FancyID: c.FancyID},
+		})
+		suite.Require().NoError(err)
+		suite.Equal(c.Expected, res.Roles)
+	}
+
+	runTest(testCase{
+		ID:       "FOO",
+		FancyID:  "",
+		Expected: []string{"admin.write", "user..write", "user..admin", "junk..crap"},
+	})
+
+	runTest(testCase{
+		ID:       "FOO",
+		FancyID:  "BAR",
+		Expected: []string{"admin.write", "user.BAR.write", "user.BAR.admin", "junk..crap"},
+	})
+}

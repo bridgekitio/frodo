@@ -134,6 +134,12 @@ type SampleService interface {
 	// ROLES admin.write,user.{ID}.write ,   user.{User.ID}.admin, junk.{NotReal}.crap
 	SecureWithRoles(context.Context, *SampleSecurityRequest) (*SampleSecurityResponse, error)
 
+	// SecureWithRolesAliased lets us test role based security by looking at the 'roles' doc option. Specifically,
+	// we make sure we can resolve role segments with string alias types, not just strings.
+	//
+	// ROLES admin.write,user.{FancyID}.write ,   user.{User.FancyID}.admin, junk.{NotReal}.crap
+	SecureWithRolesAliased(context.Context, *SampleSecurityRequest) (*SampleSecurityResponse, error)
+
 	// Panic um... panics. It never succeeds. It always behaves like me when I'm on a high place looking down.
 	Panic(context.Context, *SampleRequest) (*SampleResponse, error)
 }
@@ -150,6 +156,8 @@ type SampleResponse SampleRequest
 type SampleUser struct {
 	// ID is a string value that will likely have no whitespace.
 	ID string
+	// FancyID makes sure that we can use aliases properly rather than just the raw primitive types.
+	FancyID StringLike
 	// Name is a string value that will likely have spaces.
 	Name string
 	// Age is a numeric value that we should support.
@@ -168,9 +176,12 @@ type SampleUser struct {
 }
 
 type SampleSecurityRequest struct {
-	ID   string
-	User SampleUser
+	ID      string
+	User    SampleUser
+	FancyID StringLike
 }
+
+type StringLike string
 
 type SampleSecurityResponse struct {
 	Roles []string
