@@ -123,8 +123,16 @@ func Assign(value any, out any) bool {
 }
 
 func set(value reflect.Value, out reflect.Value) bool {
+	// Should have no problem assigning "foo" to an out variable of type &string
 	if out.Type().AssignableTo(value.Type()) {
 		out.Set(value)
+		return true
+	}
+	// If your value is a type alias of the out type, convert and set. For instance:
+	// your value type is 'string' and your out is the alias 'type ID string'. Convert your
+	// string into an ID and then set the value.
+	if out.Type().ConvertibleTo(value.Type()) {
+		out.Set(value.Convert(out.Type()))
 		return true
 	}
 	return false
