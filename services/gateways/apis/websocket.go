@@ -3,10 +3,12 @@ package apis
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
+	"sync"
 
 	"github.com/bridgekitio/frodo/fail"
 	"github.com/bridgekitio/frodo/internal/quiet"
@@ -22,26 +24,34 @@ import (
 // named "user.123.A", "user.123.B", and "user.123.C".
 //
 // All callbacks are executed in separate goroutines, so expect these to run in parallel for all matching sockets.
-func WalkWebsockets(ctx context.Context, connectionPrefix string, handler func(ctx context.Context, id string, websocket *Websocket) error) error {
-	sockets, ok := ctx.Value(websocketRegistryContextKey{}).(*radix.Tree[*Websocket])
+func WalkWebsockets(ctx context.Context, socketPrefix string, handler func(ctx context.Context, websocket *Websocket) error) error {
+	registry, ok := ctx.Value(websocketRegistryContextKey{}).(*websocketRegistry)
 	if !ok {
 		return fail.Unexpected("error connecting websocket: missing websocket registry")
 	}
 
 	errs, _ := fail.NewGroup(ctx)
-	sockets.WalkPrefix(connectionPrefix, func(connectionID string, socket *Websocket) bool {
+	registry.walk(socketPrefix, func(websocket *Websocket) {
 		errs.Go(func() error {
-			return handler(ctx, connectionID, socket)
+			// Ignore errors where the socket was already closed. Yes, the startListening() loop should auto-close the socket once the
+			// conn is bad, but it's possible that this handler fires before it can fully break out of the loop, so let's give it a hand.
+			switch err := handler(ctx, websocket); {
+			case errors.Is(err, net.ErrClosed):
+				quiet.Close(websocket)
+				return nil
+			default:
+				return err
+			}
 		})
-		return false
 	})
 	return errs.Wait()
+
 }
 
 // ConnectWebsocket hijacks the HTTP connection and makes it so that the user can have duplex communication with
 // a connected client browser/device.
 func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOptions) (*Websocket, error) {
-	sockets, ok := ctx.Value(websocketRegistryContextKey{}).(*radix.Tree[*Websocket])
+	sockets, ok := ctx.Value(websocketRegistryContextKey{}).(*websocketRegistry)
 	if !ok {
 		return nil, fail.Unexpected("error connecting websocket: missing websocket registry")
 	}
@@ -69,7 +79,7 @@ func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOp
 	socket := Websocket{Conn: conn, ID: connectionID, Options: opts.applyDefaults(), newMessageContext: newMessageContext}
 	customOnClose := socket.Options.OnClose
 	socket.Options.OnClose = func() {
-		sockets.Delete(connectionID)
+		sockets.remove(connectionID)
 		customOnClose()
 	}
 
@@ -77,10 +87,11 @@ func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOp
 	// different places, don't use the connection ID "user.123.web" because if they're logged in w/ 2 different
 	// browsers they'll clobber each other. Instead, do "user.123.web.TIMESTAMP" or something like that. They'll
 	// each maintain connections, and you can locate them both by doing prefix lookups on "user.123.web"
-	if old, ok := sockets.Insert(connectionID, &socket); ok {
+	if old, ok := sockets.add(connectionID, &socket); ok {
 		quiet.Close(old)
 	}
 
+	socket.startListening()
 	return &socket, nil
 }
 
@@ -88,11 +99,11 @@ func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOp
 type WebsocketOptions struct {
 	// Logger lets you customize how you want this debug/trace logging to work.
 	Logger *slog.Logger
-	// OnReadText provides a handler for incoming text data after you call StartListening()
+	// OnReadText provides a handler for incoming text data.
 	OnReadText func(ctx context.Context, socket *Websocket, data []byte)
-	// OnReadBinary provides a handler for incoming binary data after you call StartListening()
+	// OnReadBinary provides a handler for incoming binary data.
 	OnReadBinary func(ctx context.Context, socket *Websocket, data []byte)
-	// OnReadContinuation provides a handler for incoming continuation frames after you call StartListening()
+	// OnReadContinuation provides a handler for incoming continuation frames.
 	OnReadContinuation func(ctx context.Context, socket *Websocket, data []byte)
 	// OnClose provides a custom handler that fires when this websocket is closed for any reason.
 	OnClose func()
@@ -110,9 +121,6 @@ func (opts WebsocketOptions) applyDefaults() WebsocketOptions {
 	}
 	if opts.OnClose == nil {
 		opts.OnClose = func() {}
-	}
-	if opts.Logger == nil {
-		opts.Logger = slog.Default()
 	}
 	return opts
 }
@@ -144,7 +152,7 @@ func (socket *Websocket) Write(data []byte) error {
 
 	if err := wsutil.WriteServerBinary(socket.Conn, data); err != nil {
 		quiet.Close(socket)
-		return fmt.Errorf("error writing to websocket: %w", err)
+		return fmt.Errorf("error writing to websocket: %s: %w", socket.ID, err)
 	}
 	return nil
 }
@@ -157,7 +165,7 @@ func (socket *Websocket) WriteClose(data []byte) error {
 
 	if err := wsutil.WriteServerMessage(socket.Conn, ws.OpClose, data); err != nil {
 		quiet.Close(socket)
-		return fmt.Errorf("error writing to websocket: %w", err)
+		return fmt.Errorf("error writing to websocket: %s: %w", socket.ID, err)
 	}
 	return nil
 }
@@ -170,7 +178,7 @@ func (socket *Websocket) WriteText(data string) error {
 
 	if err := wsutil.WriteServerText(socket.Conn, []byte(data)); err != nil {
 		quiet.Close(socket)
-		return fmt.Errorf("error writing to websocket: %w", err)
+		return fmt.Errorf("error writing to websocket: %s: %w", socket.ID, err)
 	}
 	return nil
 }
@@ -187,7 +195,7 @@ func (socket *Websocket) WriteJSON(value any) error {
 	}
 	if err := wsutil.WriteServerText(socket.Conn, data); err != nil {
 		quiet.Close(socket)
-		return fmt.Errorf("error writing to websocket: %w", err)
+		return fmt.Errorf("error writing to websocket: %s: %w", socket.ID, err)
 	}
 	return nil
 }
@@ -198,17 +206,26 @@ func (socket *Websocket) Close() error {
 		return nil
 	}
 
+	if socket.Options.Logger != nil {
+		socket.Options.Logger.Info("Websocket CLOSED", "websocket_id", socket.ID)
+	}
+
 	quiet.Close(socket.Conn)
+	socket.Conn = nil // make sure this socket reference is not seen as 'Active' anymore.
 	socket.Options.OnClose()
 	return nil
 }
 
-// StartListening fires off a separate goroutine that infinitely loops, attempting to read messages from the client.
+// startListening fires off a separate goroutine that infinitely loops, attempting to read messages from the client.
 // Any incoming messages will be routed to the socket's OnReadText/Binary/etc. handlers. This will exit automatically
 // when the socket/connection is closed.
-func (socket *Websocket) StartListening() {
+func (socket *Websocket) startListening() {
+	if socket.Options.Logger != nil {
+		socket.Options.Logger.Info("Websocket OPENED", "websocket_id", socket.ID)
+	}
+
 	go func() {
-		defer quiet.Close(socket.Conn)
+		defer quiet.Close(socket)
 		logger := socket.Options.Logger
 
 		for socket.Active() {
@@ -244,9 +261,48 @@ type websocketRegistryContextKey struct{}
 // websocketRegistryMiddleware ensures that WalkWebsockets and ConnectWebsocket have access to the gateway's
 // master websocket connection registry. We don't expose this registry to end users of Frodo. We only provide
 // functions that let them indirectly interact w/ it.
-func websocketRegistryMiddleware(websockets *radix.Tree[*Websocket]) services.MiddlewareFunc {
+func websocketRegistryMiddleware(websockets *websocketRegistry) services.MiddlewareFunc {
 	return func(ctx context.Context, req any, next services.HandlerFunc) (any, error) {
 		ctx = context.WithValue(ctx, websocketRegistryContextKey{}, websockets)
 		return next(ctx, req)
 	}
+}
+
+func newWebsocketRegistry() *websocketRegistry {
+	return &websocketRegistry{
+		mutex:   &sync.Mutex{},
+		sockets: radix.New[*Websocket](),
+	}
+}
+
+// websocketRegistry contains a mapping of all currently-open connections and their IDs.
+type websocketRegistry struct {
+	mutex   *sync.Mutex
+	sockets radix.Tree[*Websocket]
+}
+
+func (registry *websocketRegistry) add(socketID string, socket *Websocket) (*Websocket, bool) {
+	registry.mutex.Lock()
+	defer registry.mutex.Unlock()
+
+	return registry.sockets.Insert(socketID, socket)
+}
+
+func (registry *websocketRegistry) remove(socketID string) {
+	registry.mutex.Lock()
+	defer registry.mutex.Unlock()
+
+	registry.sockets.Delete(socketID)
+}
+
+// walk invokes the visitorFunc on all websockets whose ids start w/ the given prefix. Beware! This locks
+// the entire registry while doing this, so make sure that your visitor is not doing anything intensive.
+func (registry *websocketRegistry) walk(socketPrefix string, visitorFunc func(*Websocket)) {
+	registry.mutex.Lock()
+	defer registry.mutex.Unlock()
+
+	registry.sockets.WalkPrefix(socketPrefix, func(_ string, socket *Websocket) bool {
+		visitorFunc(socket)
+		return false
+	})
 }

@@ -15,7 +15,6 @@ import (
 	"github.com/bridgekitio/frodo/fail"
 	"github.com/bridgekitio/frodo/internal/naming"
 	"github.com/bridgekitio/frodo/internal/quiet"
-	"github.com/bridgekitio/frodo/internal/radix"
 	"github.com/bridgekitio/frodo/services"
 	"github.com/rs/cors"
 )
@@ -26,7 +25,6 @@ import (
 func NewGateway(address string, options ...GatewayOption) *Gateway {
 	router := http.NewServeMux()
 	codecs := codec.New()
-	websockets := radix.New[*Websocket]()
 	gw := Gateway{
 		router:          router,
 		codecs:          codecs,
@@ -35,7 +33,7 @@ func NewGateway(address string, options ...GatewayOption) *Gateway {
 		server:          &http.Server{Addr: address, Handler: router},
 		tlsCert:         "",
 		tlsKey:          "",
-		websockets:      &websockets,
+		websockets:      newWebsocketRegistry(),
 		notFoundHandler: defaultNotFoundHandler(codecs),
 	}
 	for _, option := range options {
@@ -58,7 +56,7 @@ type Gateway struct {
 	tlsCert         string
 	tlsKey          string
 	notFoundHandler http.HandlerFunc
-	websockets      *radix.Tree[*Websocket]
+	websockets      *websocketRegistry
 	cors            *cors.Cors
 }
 
