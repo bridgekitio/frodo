@@ -60,8 +60,13 @@ func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOp
 		return nil, fmt.Errorf("error connecting websocket: %w", err)
 	}
 
+	// Message handlers should be able to walk the websocket registry.
+	newMessageContext := func() context.Context {
+		return context.WithValue(context.Background(), websocketRegistryContextKey{}, sockets)
+	}
+
 	// Make sure that we automatically clean up the registry when connections close.
-	socket := Websocket{Conn: conn, ID: connectionID, Options: opts.applyDefaults()}
+	socket := Websocket{Conn: conn, ID: connectionID, Options: opts.applyDefaults(), newMessageContext: newMessageContext}
 	customOnClose := socket.Options.OnClose
 	socket.Options.OnClose = func() {
 		sockets.Delete(connectionID)
@@ -84,24 +89,24 @@ type WebsocketOptions struct {
 	// Logger lets you customize how you want this debug/trace logging to work.
 	Logger *slog.Logger
 	// OnReadText provides a handler for incoming text data after you call StartListening()
-	OnReadText func(socket *Websocket, data []byte)
+	OnReadText func(ctx context.Context, socket *Websocket, data []byte)
 	// OnReadBinary provides a handler for incoming binary data after you call StartListening()
-	OnReadBinary func(socket *Websocket, data []byte)
+	OnReadBinary func(ctx context.Context, socket *Websocket, data []byte)
 	// OnReadContinuation provides a handler for incoming continuation frames after you call StartListening()
-	OnReadContinuation func(socket *Websocket, data []byte)
+	OnReadContinuation func(ctx context.Context, socket *Websocket, data []byte)
 	// OnClose provides a custom handler that fires when this websocket is closed for any reason.
 	OnClose func()
 }
 
 func (opts WebsocketOptions) applyDefaults() WebsocketOptions {
 	if opts.OnReadText == nil {
-		opts.OnReadText = func(socket *Websocket, data []byte) {}
+		opts.OnReadText = func(ctx context.Context, socket *Websocket, data []byte) {}
 	}
 	if opts.OnReadBinary == nil {
-		opts.OnReadBinary = func(socket *Websocket, data []byte) {}
+		opts.OnReadBinary = func(ctx context.Context, socket *Websocket, data []byte) {}
 	}
 	if opts.OnReadContinuation == nil {
-		opts.OnReadContinuation = func(socket *Websocket, data []byte) {}
+		opts.OnReadContinuation = func(ctx context.Context, socket *Websocket, data []byte) {}
 	}
 	if opts.OnClose == nil {
 		opts.OnClose = func() {}
@@ -122,6 +127,8 @@ type Websocket struct {
 	Conn net.Conn
 	// Options contains our callbacks for handling all manner of reads and the close event.
 	Options WebsocketOptions
+	// newMessageContext is used internally to create a context intended to be used for the handling of a single message written to the socket.
+	newMessageContext func() context.Context
 }
 
 // Active returns true if the underlying connection has NOT been closed yet.
@@ -218,11 +225,11 @@ func (socket *Websocket) StartListening() {
 			case ws.OpClose:
 				break
 			case ws.OpText:
-				socket.Options.OnReadText(socket, data)
+				socket.Options.OnReadText(socket.newMessageContext(), socket, data)
 			case ws.OpBinary:
-				socket.Options.OnReadBinary(socket, data)
+				socket.Options.OnReadBinary(socket.newMessageContext(), socket, data)
 			case ws.OpContinuation:
-				socket.Options.OnReadContinuation(socket, data)
+				socket.Options.OnReadContinuation(socket.newMessageContext(), socket, data)
 			case ws.OpPing:
 				_ = wsutil.WriteServerMessage(socket.Conn, ws.OpPong, data)
 			case ws.OpPong:
