@@ -30,6 +30,10 @@ func WalkWebsockets(ctx context.Context, socketPrefix string, handler func(ctx c
 		return fail.Unexpected("error connecting websocket: missing websocket registry")
 	}
 
+	if socketPrefix == "" {
+		return fail.BadRequest("walking websockets requires a non-empty prefix")
+	}
+
 	errs, _ := fail.NewGroup(ctx)
 	registry.walk(socketPrefix, func(websocket *Websocket) {
 		errs.Go(func() error {

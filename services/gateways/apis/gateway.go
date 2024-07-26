@@ -106,6 +106,8 @@ func (gw *Gateway) registerNotFound() {
 func (gw *Gateway) listenAndServe() error {
 	switch {
 	case gw.UseTLS():
+		// TODO: Server defaults to HTTP2 and our JSON encoding of responses fails, so force HTTP/1.1 when using TLS until I figure that out.
+		gw.server.TLSNextProto = map[string]func(*http.Server, *tls.Conn, http.Handler){}
 		return gw.server.ListenAndServeTLS(gw.tlsCert, gw.tlsKey)
 	default:
 		return gw.server.ListenAndServe()
