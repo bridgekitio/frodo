@@ -26,18 +26,21 @@ type ServerSuite struct {
 	suite.Suite
 	addresses      testext.FreeAddress
 	httpMiddleware apis.HTTPMiddlewareFuncs
+	httpClient     *http.Client
+	httpAddress    string
 	client         testext.SampleService
 }
 
 func (suite *ServerSuite) SetupTest() {
 	suite.httpMiddleware = apis.HTTPMiddlewareFuncs{}
+	suite.httpClient = &http.Client{Timeout: 2 * time.Second}
 	suite.client = nil
 }
 
 func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) {
 	// Grab a fresh address, so we can parallelize our tests.
-	address := suite.addresses.Next()
-	suite.client = gen.SampleServiceClient(address)
+	suite.httpAddress = suite.addresses.Next()
+	suite.client = gen.SampleServiceClient(suite.httpAddress)
 
 	// Capture invocations across both services in one timeline.
 	sequence := &testext.Sequence{}
@@ -45,11 +48,11 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 	sampleService := testext.SampleServiceHandler{Sequence: sequence}
 	otherService := testext.OtherServiceHandler{
 		Sequence:      sequence,
-		SampleService: gen.SampleServiceClient(address),
+		SampleService: gen.SampleServiceClient(suite.httpAddress),
 	}
 
 	server := services.NewServer(
-		services.Listen(apis.NewGateway(address, apis.WithMiddleware(suite.httpMiddleware...))),
+		services.Listen(apis.NewGateway(suite.httpAddress, apis.WithMiddleware(suite.httpMiddleware...))),
 		services.Listen(events.NewGateway()),
 		services.Register(gen.SampleServiceServer(sampleService)),
 		services.Register(gen.OtherServiceServer(otherService)),
@@ -360,4 +363,82 @@ func (suite *ServerSuite) TestEventErrorChain() {
 		"OnFailAlways.Error.StatusCode:501",
 		"OnFailAlways.Error.HTTPStatusCode:501",
 	})
+}
+
+func (suite *ServerSuite) TestRestoreAuthorizationMiddleware() {
+	_, values, shutdown := suite.start()
+	defer shutdown()
+
+	Authorization := "Authorization"
+	SecWebsocketProtocol := "Sec-WebSocket-Protocol"
+
+	testCase := func(expected string, updateHeaders func(req *http.Request)) {
+		req, _ := http.NewRequest("POST", "http://"+suite.httpAddress+"/v2/SampleService.Authorization", nil)
+		updateHeaders(req)
+		suite.assertRequestSuccess(suite.httpClient.Do(req))
+		suite.Require().Equal("Authorization:"+expected, values.Last())
+	}
+
+	// Don't apply any headers.
+	testCase("", func(req *http.Request) {
+	})
+
+	// Explicitly blank
+	testCase("", func(req *http.Request) {
+		req.Header.Set(Authorization, "")
+	})
+
+	// Just a token value
+	testCase("123", func(req *http.Request) {
+		req.Header.Set(Authorization, "123")
+	})
+
+	// A scheme/value separated value
+	testCase("Bearer 456", func(req *http.Request) {
+		req.Header.Set(Authorization, "Bearer 456")
+	})
+
+	// Seriously, frodo doesn't care about the auth format - that's a concern for your app
+	testCase("The beer has gone bad", func(req *http.Request) {
+		req.Header.Set(Authorization, "The beer has gone bad")
+	})
+
+	// Websocket auth needs to conform to the single-token format like "Authorization-SCHEME-VALUE" or "Authorization-VALUE", so this won't work
+	testCase("", func(req *http.Request) {
+		req.Header.Set(SecWebsocketProtocol, "Authorization: Bearer 12345")
+	})
+
+	// Can fall back to using Sec-Websocket-Protocol when necessary (value only)
+	testCase("12345", func(req *http.Request) {
+		req.Header.Set(SecWebsocketProtocol, "Authorization-12345")
+	})
+
+	// Splits common schemes like "Basic-123" into the more canonical "Basic 123"
+	testCase("Basic ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Basic-ABC") })
+	testCase("Bearer ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Bearer-ABC") })
+	testCase("Digest ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Digest-ABC") })
+	testCase("Token ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Token-ABC") })
+	testCase("HOBA ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-HOBA-ABC") })
+	testCase("Mutual ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Mutual-ABC") })
+	testCase("VAPID ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-VAPID-ABC") })
+	testCase("SCRAM ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-SCRAM-ABC") })
+	testCase("AWS4-HMAC-SHA256 ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-AWS4-HMAC-SHA256-ABC") })
+
+	// Obscure/unknown schemes are left w/ the "-" splitting them. Sorry.
+	testCase("FooBar-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-FooBar-ABC") })
+
+	// Our scheme checks are CASE SENSITIVE... follow the standards, you scallywag, otherwise we're leaving the "-" in between them.
+	testCase("BaSIc-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-BaSIc-ABC") })
+	testCase("bearer-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-bearer-ABC") })
+
+	// If you provide both, standard Authorization header wins.
+	testCase("Bearer 123", func(req *http.Request) {
+		req.Header.Set(Authorization, "Bearer 123")
+		req.Header.Set(SecWebsocketProtocol, "Authorization-Basic-456")
+	})
+}
+
+func (suite *ServerSuite) assertRequestSuccess(res *http.Response, err error) {
+	suite.Require().NoError(err, "HTTP request should have a low level 'err' failure.")
+	suite.Require().True(res.StatusCode < 400, "HTTP request should have a successful status code")
 }
