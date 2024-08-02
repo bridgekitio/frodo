@@ -431,6 +431,29 @@ func (routes GatewayRoutes) Events() GatewayRoutes {
 	return results
 }
 
+// RouteType describes how the gateway or client should handle implementation of this endpoint (e.g. REST request vs websocket).
+type RouteType string
+
+const (
+	// RouteTypeDefault indicates that servers/clients should build handlers for this route using the standard implementation for
+	// the current gateway. For the API gateway, this means to build it just like a normal REST endpoint. For the Events gateway, this
+	// means ingesting events from the broker.
+	RouteTypeDefault = RouteType("")
+	// RouteTypeWebsocket is only used by the API gateway when generating clients to indicate that the implementation should create a
+	// websocket to this endpoint rather than dispatching a standard HTTP request.
+	RouteTypeWebsocket = RouteType("Websocket")
+)
+
+// Default returns true if this type is not one of our specialized types like Websocket.
+func (t RouteType) Default() bool {
+	return !t.Websocket()
+}
+
+// Websocket returns true if this type indicates that this route should be implemented using a websocket.
+func (t RouteType) Websocket() bool {
+	return t == RouteTypeWebsocket
+}
+
 // GatewayRoute contains the information required to register a method/endpoint with a specific
 // gateway/listener. For instance, an operation might be triggered via some HTTP endpoint in
 // your API, or it might be asynchronously triggered by listening for a certain event. In that
@@ -446,6 +469,8 @@ type GatewayRoute struct {
 	Path string
 	// Status indicates what success status code the gateway should use when responding via HTTP (e.g. 200, 202, etc)
 	Status int
+	// RouteType describes how the gateway or client should handle implementation of this endpoint (e.g. REST request vs websocket).
+	RouteType RouteType
 }
 
 // QualifiedPath returns the route's path with the service's PathPrefix prepended to it. This includes a leading "/"

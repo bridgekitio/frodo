@@ -130,7 +130,7 @@ func (s SampleServiceHandler) Redirect(_ context.Context, _ *SampleRedirectReque
 }
 
 func (s SampleServiceHandler) Authorization(ctx context.Context, req *SampleRequest) (*SampleResponse, error) {
-	s.Sequence.Append("Authorization:" + req.Text)
+	s.Sequence.Append("Authorization:" + metadata.Authorization(ctx))
 	return &SampleResponse{Text: metadata.Authorization(ctx)}, nil
 }
 

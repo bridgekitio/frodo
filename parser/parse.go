@@ -786,6 +786,7 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 		Method:      "POST",
 		Path:        "/" + function.Service.Name + "." + function.Name,
 		Status:      200,
+		RouteType:   RouteTypeDefault,
 	}
 	function.Routes = append(function.Routes, &apiRoute)
 
@@ -825,6 +826,18 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 			function.Routes = slices.Remove(function.Routes, &apiRoute)
 		case strings.HasPrefix(line, "HTTP "):
 			apiRoute.Status = parseHTTPStatus(line[5:])
+
+		//
+		// API gateway websockets - make them GET requests, but set route type so templates can behave accordingly.
+		//
+		case strings.HasPrefix(line, "WS "):
+			apiRoute.Method = http.MethodGet
+			apiRoute.Path = normalizePath(line[3:])
+			apiRoute.RouteType = RouteTypeWebsocket
+		case strings.HasPrefix(line, "WEBSOCKET "):
+			apiRoute.Method = http.MethodGet
+			apiRoute.Path = normalizePath(line[10:])
+			apiRoute.RouteType = RouteTypeWebsocket
 
 		//
 		// Event gateway options

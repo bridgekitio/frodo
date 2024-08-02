@@ -3,6 +3,7 @@ package apis
 import (
 	"context"
 	"net/http"
+	"strings"
 
 	"github.com/bridgekitio/frodo/codec"
 	"github.com/bridgekitio/frodo/metadata"
@@ -89,6 +90,48 @@ func restoreMetadataEndpoint(endpoint services.Endpoint, route services.Endpoint
 
 // restoreAuthorization applies the Authorization HTTP header to your context metadata.
 func restoreAuthorization() HTTPMiddlewareFunc {
+	headerAuthorization := http.CanonicalHeaderKey("Authorization")
+	headerWebsocketProtocol := http.CanonicalHeaderKey("Sec-WebSocket-Protocol")
+	readStandardAuth := func(req *http.Request) string {
+		return strings.TrimSpace(req.Header.Get(headerAuthorization))
+	}
+	readWebsocketAuth := func(req *http.Request) string {
+		// This header's values only allow single tokens, so we can't do something nice like one of the values
+		// as "Authorization: Bearer foo". Instead, we need to do "Authorization-Bearer-foo" to make browsers happy, so this
+		// logic tries to pick apart that formatted value to give the same format as the normal Authorization header.
+		for _, v := range req.Header[headerWebsocketProtocol] {
+			_, authValue, found := strings.Cut(v, "Authorization-") // Make sure this is one of our smuggled Authorization values.
+			if !found {
+				continue
+			}
+
+			// Split common schemes so "Bearer-123" becomes "Bearer 123" just as if you were using the normal Authorization header.
+			switch {
+			case strings.HasPrefix(authValue, "Basic-"):
+				return "Basic " + authValue[6:]
+			case strings.HasPrefix(authValue, "Bearer-"):
+				return "Bearer " + authValue[7:]
+			case strings.HasPrefix(authValue, "Digest-"):
+				return "Digest " + authValue[7:]
+			case strings.HasPrefix(authValue, "Token-"):
+				return "Token " + authValue[6:]
+			case strings.HasPrefix(authValue, "HOBA-"):
+				return "HOBA " + authValue[5:]
+			case strings.HasPrefix(authValue, "Mutual-"):
+				return "Mutual " + authValue[7:]
+			case strings.HasPrefix(authValue, "VAPID-"):
+				return "VAPID " + authValue[6:]
+			case strings.HasPrefix(authValue, "SCRAM-"):
+				return "SCRAM " + authValue[6:]
+			case strings.HasPrefix(authValue, "AWS4-HMAC-SHA256-"):
+				return "AWS4-HMAC-SHA256 " + authValue[17:]
+			default:
+				return authValue
+			}
+		}
+		return ""
+	}
+
 	return func(w http.ResponseWriter, req *http.Request, next http.HandlerFunc) {
 		// It is possible to get authorization from the metadata attributes header as well
 		// as the standard Authorization header. We will use the metadata value if there's
@@ -99,11 +142,22 @@ func restoreAuthorization() HTTPMiddlewareFunc {
 		// credentials. If we used the metadata attrs as the authoritative value, you'd be
 		// stuck using one set of credentials for everything this request may require which
 		// is not what we want.
-		ctx := req.Context()
-		if auth := req.Header.Get("Authorization"); auth != "" {
-			ctx = metadata.WithAuthorization(req.Context(), auth)
+		//
+		// Otherwise, we prefer to get credentials from the standard HTTP Authorization header, and
+		// that works 99% of the time. For websockets in the browser, however, they have the limitation
+		// that you can't pass custom headers on connection except for "Sec-Websocket-Protocol", so
+		// we will look through all of its values and use the one that looks like "Authorization: XXX".
+		// For instance, if the header values is ["foo", "bar", "Authorization: baz"], we'll use the
+		// value "baz" as the context's authorization value.
+		if auth := readStandardAuth(req); auth != "" {
+			next(w, req.WithContext(metadata.WithAuthorization(req.Context(), auth)))
+			return
 		}
-		next(w, req.WithContext(ctx))
+		if auth := readWebsocketAuth(req); auth != "" {
+			next(w, req.WithContext(metadata.WithAuthorization(req.Context(), auth)))
+			return
+		}
+		next(w, req.WithContext(req.Context()))
 	}
 }
 

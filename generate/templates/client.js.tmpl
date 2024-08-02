@@ -4,7 +4,7 @@
 //   Source:    {{ .Path }}
 //   Generator: https://github.com/bridgekitio/frodo
 //
-/* global fetch,module,window */
+/* global fetch,module,window,WebSocket */
 'use strict';
 
 /**
@@ -30,6 +30,10 @@ class {{ .Service.Name }}Client {
      */
     constructor(baseURL, {fetch, authorization} = {}) {
         this._baseURL = trimSlashes(baseURL);
+        this._baseSocketURL = this._baseURL.startsWith("http://")
+            ? this._baseURL.replace("http://", "ws://")
+            : this._baseURL.replace("https://", "wss://");
+
         this._fetch = fetch || defaultFetch();
         this._authorization = authorization || '';
     }
@@ -45,11 +49,13 @@ class {{ .Service.Name }}Client {
      *     in the request. This will override any authorization you might have applied when
      *     constructing this client. Use this in multi-tenant situations where multiple users
      *     might utilize this service.
-     {{- if .Response.Implements.ContentGetter }}
+    {{- if .Response.Implements.ContentGetter }}
      * @returns {Promise<{{ .Response.Name }}> | StreamedResponse } The raw stream data returned by the server.
-     {{- else }}
-     * @returns {Promise<{{ .Response.Name }}> } The JSON-encoded return value of the operation.
-     {{- end }}
+    {{- else }} {{- if and $apiRoute $apiRoute.RouteType.Websocket }}
+     * @returns {Promise< WebSocket > } The socket connection we're opening w/ the server.
+    {{- else }}
+        * @returns {Promise<{{ .Response.Name }}> } The JSON-encoded return value of the operation.
+    {{- end }}{{- end }}
      */
     async {{ .Name }}(serviceRequest, {authorization} = {}) {
     {{- if $apiRoute }}
@@ -59,11 +65,16 @@ class {{ .Service.Name }}Client {
 
         const method = '{{ $apiRoute.Method }}';
         const route = '{{ $apiRoute.QualifiedPath }}';
-        const url = this._baseURL + '/' + buildRequestPath(method, route, serviceRequest);
+        const requestPath = buildRequestPath(method, route, serviceRequest);
+        const authToken = (authorization || this._authorization || "").trim();
+
+        {{- if $apiRoute.RouteType.Websocket }}
+        return new WebSocket(this._baseSocketURL + '/' + requestPath, authToken ? [`Authorization-Bearer-${authToken}`] : []);
+        {{- else }}
         const fetchOptions = {
             method: method,
             headers: {
-                'Authorization': authorization || this._authorization,
+                'Authorization': authToken ? "Bearer " + authToken : "",
                 'Accept': 'application/json,*/*',
                 'Content-Type': 'application/json; charset=utf-8',
             },
@@ -72,12 +83,14 @@ class {{ .Service.Name }}Client {
             {{- end }}
         };
 
-        const response = await doFetch(this._fetch, url, fetchOptions);
+        const response = await doFetch(this._fetch, this._baseURL + '/' + requestPath, fetchOptions);
         {{- if .Response.Implements.ContentGetter }}
         return handleResponseStream(response);
         {{- else }}
         return handleResponseJSON(response);
         {{- end }}
+        {{- end }}
+
     {{ else }}
         throw new GatewayError(501, '{{ .Name }} is not supported in the API gateway');
     {{ end }}

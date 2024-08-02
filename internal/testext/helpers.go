@@ -31,6 +31,14 @@ func (seq *Sequence) Values() []string {
 	return seq.values
 }
 
+// Last returns the most recent value from the sequence, so you can check them as they come in.
+func (seq *Sequence) Last() string {
+	if len(seq.values) <= 0 {
+		return ""
+	}
+	return seq.values[len(seq.values)-1]
+}
+
 // WaitGroup returns the wait group that helps synchronize the async routines filling this sequence.
 func (seq *Sequence) WaitGroup() *sync.WaitGroup {
 	return seq.wg
