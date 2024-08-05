@@ -69,7 +69,7 @@ class {{ .Service.Name }}Client {
         const authToken = (authorization || this._authorization || "").trim();
 
         {{- if $apiRoute.RouteType.Websocket }}
-        return new WebSocket(this._baseSocketURL + '/' + requestPath, authToken ? [`Authorization-Bearer-${authToken}`] : []);
+        return new WebSocket(this._baseSocketURL + '/' + requestPath, authToken ? [`Authorization.Bearer.${authToken}`] : []);
         {{- else }}
         const fetchOptions = {
             method: method,

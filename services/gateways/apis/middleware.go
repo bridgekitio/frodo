@@ -97,33 +97,33 @@ func restoreAuthorization() HTTPMiddlewareFunc {
 	}
 	readWebsocketAuth := func(req *http.Request) string {
 		// This header's values only allow single tokens, so we can't do something nice like one of the values
-		// as "Authorization: Bearer foo". Instead, we need to do "Authorization-Bearer-foo" to make browsers happy, so this
+		// as "Authorization: Bearer foo". Instead, we need to do "Authorization.Bearer.foo" to make browsers happy, so this
 		// logic tries to pick apart that formatted value to give the same format as the normal Authorization header.
 		for _, v := range req.Header[headerWebsocketProtocol] {
-			_, authValue, found := strings.Cut(v, "Authorization-") // Make sure this is one of our smuggled Authorization values.
+			_, authValue, found := strings.Cut(v, "Authorization.") // Make sure this is one of our smuggled Authorization values.
 			if !found {
 				continue
 			}
 
-			// Split common schemes so "Bearer-123" becomes "Bearer 123" just as if you were using the normal Authorization header.
+			// Split common schemes so "Bearer.123" becomes "Bearer 123" just as if you were using the normal Authorization header.
 			switch {
-			case strings.HasPrefix(authValue, "Basic-"):
+			case strings.HasPrefix(authValue, "Basic."):
 				return "Basic " + authValue[6:]
-			case strings.HasPrefix(authValue, "Bearer-"):
+			case strings.HasPrefix(authValue, "Bearer."):
 				return "Bearer " + authValue[7:]
-			case strings.HasPrefix(authValue, "Digest-"):
+			case strings.HasPrefix(authValue, "Digest."):
 				return "Digest " + authValue[7:]
-			case strings.HasPrefix(authValue, "Token-"):
+			case strings.HasPrefix(authValue, "Token."):
 				return "Token " + authValue[6:]
-			case strings.HasPrefix(authValue, "HOBA-"):
+			case strings.HasPrefix(authValue, "HOBA."):
 				return "HOBA " + authValue[5:]
-			case strings.HasPrefix(authValue, "Mutual-"):
+			case strings.HasPrefix(authValue, "Mutual."):
 				return "Mutual " + authValue[7:]
-			case strings.HasPrefix(authValue, "VAPID-"):
+			case strings.HasPrefix(authValue, "VAPID."):
 				return "VAPID " + authValue[6:]
-			case strings.HasPrefix(authValue, "SCRAM-"):
+			case strings.HasPrefix(authValue, "SCRAM."):
 				return "SCRAM " + authValue[6:]
-			case strings.HasPrefix(authValue, "AWS4-HMAC-SHA256-"):
+			case strings.HasPrefix(authValue, "AWS4-HMAC-SHA256."):
 				return "AWS4-HMAC-SHA256 " + authValue[17:]
 			default:
 				return authValue

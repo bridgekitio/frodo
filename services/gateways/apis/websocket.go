@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 
 	"github.com/bridgekitio/frodo/fail"
@@ -66,6 +67,12 @@ func ConnectWebsocket(ctx context.Context, connectionID string, opts WebsocketOp
 	w, ok := ctx.Value(responseContextKey{}).(http.ResponseWriter)
 	if !ok {
 		return nil, fail.Unexpected("error connecting websocket: missing response")
+	}
+
+	// What the hell are we doing here? In Javascript, you can't customize headers on the ws/wss request when trying to
+	// open a websocket. Unfortunately, that means we have to use "less pretty" ways to give users a way to do this.
+	ws.DefaultHTTPUpgrader.Protocol = func(value string) bool {
+		return strings.HasPrefix(value, "Authorization.")
 	}
 
 	// Upgrade the HTTP connection to a websocket.
