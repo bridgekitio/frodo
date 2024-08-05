@@ -403,38 +403,44 @@ func (suite *ServerSuite) TestRestoreAuthorizationMiddleware() {
 		req.Header.Set(Authorization, "The beer has gone bad")
 	})
 
-	// Websocket auth needs to conform to the single-token format like "Authorization-SCHEME-VALUE" or "Authorization-VALUE", so this won't work
+	// Websocket auth needs to conform to the single-token format like "Authorization.SCHEME.VALUE" or "Authorization.VALUE", so this won't work
 	testCase("", func(req *http.Request) {
 		req.Header.Set(SecWebsocketProtocol, "Authorization: Bearer 12345")
+	})
+	testCase("", func(req *http.Request) {
+		req.Header.Set(SecWebsocketProtocol, "Authorization-Bearer-12345")
 	})
 
 	// Can fall back to using Sec-Websocket-Protocol when necessary (value only)
 	testCase("12345", func(req *http.Request) {
-		req.Header.Set(SecWebsocketProtocol, "Authorization-12345")
+		req.Header.Set(SecWebsocketProtocol, "Authorization.12345")
 	})
 
 	// Splits common schemes like "Basic-123" into the more canonical "Basic 123"
-	testCase("Basic ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Basic-ABC") })
-	testCase("Bearer ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Bearer-ABC") })
-	testCase("Digest ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Digest-ABC") })
-	testCase("Token ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Token-ABC") })
-	testCase("HOBA ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-HOBA-ABC") })
-	testCase("Mutual ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-Mutual-ABC") })
-	testCase("VAPID ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-VAPID-ABC") })
-	testCase("SCRAM ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-SCRAM-ABC") })
-	testCase("AWS4-HMAC-SHA256 ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-AWS4-HMAC-SHA256-ABC") })
+	testCase("Basic ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Basic.ABC") })
+	testCase("Bearer ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Bearer.ABC") })
+	testCase("Digest ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Digest.ABC") })
+	testCase("Token ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Token.ABC") })
+	testCase("HOBA ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.HOBA.ABC") })
+	testCase("Mutual ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Mutual.ABC") })
+	testCase("VAPID ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.VAPID.ABC") })
+	testCase("SCRAM ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.SCRAM.ABC") })
+	testCase("AWS4-HMAC-SHA256 ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.AWS4-HMAC-SHA256.ABC") })
 
 	// Obscure/unknown schemes are left w/ the "-" splitting them. Sorry.
-	testCase("FooBar-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-FooBar-ABC") })
+	testCase("FooBar.ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.FooBar.ABC") })
 
 	// Our scheme checks are CASE SENSITIVE... follow the standards, you scallywag, otherwise we're leaving the "-" in between them.
-	testCase("BaSIc-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-BaSIc-ABC") })
-	testCase("bearer-ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization-bearer-ABC") })
+	testCase("BaSIc.ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.BaSIc.ABC") })
+	testCase("bearer.ABC", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.bearer.ABC") })
+
+	// You should be allowed to have periods in your token value.
+	testCase("Bearer ABC.123..XYZ.", func(req *http.Request) { req.Header.Set(SecWebsocketProtocol, "Authorization.Bearer.ABC.123..XYZ.") })
 
 	// If you provide both, standard Authorization header wins.
 	testCase("Bearer 123", func(req *http.Request) {
 		req.Header.Set(Authorization, "Bearer 123")
-		req.Header.Set(SecWebsocketProtocol, "Authorization-Basic-456")
+		req.Header.Set(SecWebsocketProtocol, "Authorization.Basic.456")
 	})
 }
 
