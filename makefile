@@ -20,6 +20,7 @@ build:
 install: build
 	@ \
  	echo "Overwriting go-installed version..." && \
+ 	mkdir -p $$GOPATH/bin && \
  	cp out/frodo $$GOPATH/bin/frodo
 
 #

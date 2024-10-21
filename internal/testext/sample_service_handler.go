@@ -187,6 +187,32 @@ func (s SampleServiceHandler) OnFailAlways(_ context.Context, req *FailAlwaysErr
 	return &FailAlwaysErrorResponse{}, nil
 }
 
+func (s SampleServiceHandler) Chain1(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	s.Sequence.Append("Chain1:" + req.Text)
+	return &SampleResponse{Text: req.Text}, nil
+}
+
+func (s SampleServiceHandler) Chain2(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	s.Sequence.Append("Chain2:" + req.Text)
+	return &SampleResponse{Text: "DO NOT ABIDE"}, fail.NotFound("this will not stand")
+}
+
+func (s SampleServiceHandler) Chain2OnSuccess(_ context.Context, req *SampleRequest) (*SampleResponse, error) {
+	s.Sequence.Append("Chain2OnSuccess:" + req.Text)
+	return &SampleResponse{Text: req.Text}, nil
+}
+
+func (s SampleServiceHandler) Chain2OnError(_ context.Context, req *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error) {
+	s.Sequence.Append("Chain2OnError.Text:" + req.Text)
+	s.Sequence.Append("Chain2OnError.Error.Error:" + req.Error.Error)
+	s.Sequence.Append("Chain2OnError.Error.Message:" + req.Error.Message)
+	s.Sequence.Append("Chain2OnError.Error.Code:" + fmt.Sprintf("%d", req.Error.Code))
+	s.Sequence.Append("Chain2OnError.Error.Status:" + fmt.Sprintf("%d", req.Error.Status))
+	s.Sequence.Append("Chain2OnError.Error.StatusCode:" + fmt.Sprintf("%d", req.Error.StatusCode))
+	s.Sequence.Append("Chain2OnError.Error.HTTPStatusCode:" + fmt.Sprintf("%d", req.Error.HTTPStatusCode))
+	return &FailAlwaysErrorResponse{}, nil
+}
+
 func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSecurityRequest) (*SampleSecurityResponse, error) {
 	s.Sequence.Append("SecureWithRoles:" + req.ID)
 	return &SampleSecurityResponse{Roles: metadata.Route(ctx).Roles}, nil

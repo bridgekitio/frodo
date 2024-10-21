@@ -365,6 +365,38 @@ func (suite *ServerSuite) TestEventErrorChain() {
 	})
 }
 
+// Ensures that if you have a multi-stage event chain of service calls (e.g. CallA->CallB->CallC), the chain is stopped
+// if an error occurs in the middle of the chain. For instance, if "CallB" fails, then we should see the execution of
+// the "ON Service.CallB:Error" instead of "ON Service.CallC".
+func (suite *ServerSuite) TestEventChainErrorMidSequence() {
+	server, calls, shutdown := suite.start()
+	defer shutdown()
+
+	calls.Reset()
+	res, err := server.Invoke(context.Background(), "SampleService", "Chain1", &testext.SampleRequest{Text: "Abide"})
+	suite.Require().NoError(err)
+	suite.Require().Equal("Abide", suite.responseText(res))
+
+	suite.assertInvoked(calls, []string{
+		// The first call happens normally.
+		"Chain1:Abide",
+		// The second call does fire, it just returns an error.
+		"Chain2:Abide",
+		// The third call should be "Chain2OnError", not the OnSuccess version.
+		//
+		// IMPORTANT DETAIL: The 'Text' attribute is still "Abide" because the error event receives the INPUT/REQUEST
+		// of the call that failed. The non-error return value of Chain2 is ignored even though it's non-null with a
+		// different value for 'Text'. Since the error input is driven off of Chain2's request, it should still be Abide.
+		"Chain2OnError.Text:Abide",
+		"Chain2OnError.Error.Error:this will not stand",
+		"Chain2OnError.Error.Message:this will not stand",
+		"Chain2OnError.Error.Code:404",
+		"Chain2OnError.Error.Status:404",
+		"Chain2OnError.Error.StatusCode:404",
+		"Chain2OnError.Error.HTTPStatusCode:404",
+	})
+}
+
 func (suite *ServerSuite) TestRestoreAuthorizationMiddleware() {
 	_, values, shutdown := suite.start()
 	defer shutdown()
