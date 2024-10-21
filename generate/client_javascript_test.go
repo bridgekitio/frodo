@@ -233,7 +233,7 @@ func (suite *JavaScriptClientSuite) TestAuthorization() {
 	output := suite.Run("Authorization", address, 1)
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
-		suite.Equal("Abide", res.Text)
+		suite.Equal("Bearer Abide", res.Text)
 	})
 }
 
@@ -245,7 +245,7 @@ func (suite *JavaScriptClientSuite) TestAuthorizationGlobal() {
 	output := suite.Run("AuthorizationGlobal", address, 1)
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
-		suite.Equal("12345", res.Text)
+		suite.Equal("Bearer 12345", res.Text)
 	})
 }
 
@@ -258,6 +258,6 @@ func (suite *JavaScriptClientSuite) TestAuthorizationOverride() {
 	output := suite.Run("AuthorizationOverride", address, 1)
 	res := testext.SampleResponse{}
 	suite.ExpectPass(output[0], &res, func() {
-		suite.Equal("Abide", res.Text)
+		suite.Equal("Bearer Abide", res.Text)
 	})
 }

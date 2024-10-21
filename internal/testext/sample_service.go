@@ -129,6 +129,27 @@ type SampleService interface {
 	// ON SampleService.FailAlways:Error
 	OnFailAlways(ctx context.Context, request *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error)
 
+	// Chain1 kicks off the Chain1/Chain2/Chain3 event chain, but we expect that it's going to stop after
+	Chain1(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
+
+	// Chain2 ALWAYS FAILS, SO CHAIN3 NEVER FIRES!!!
+	//
+	// ON SampleService.Chain1
+	Chain2(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
+
+	// Chain2OnSuccess never fires. It listens for the success of Chain2, but since that always fails, this
+	// should never be triggered, so tests should never have this in its output.
+	//
+	// HTTP OMIT
+	// ON SampleService.Chain2
+	Chain2OnSuccess(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
+
+	// Chain2OnError
+	//
+	// HTTP OMIT
+	// ON SampleService.Chain2:Error
+	Chain2OnError(ctx context.Context, request *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error)
+
 	// SecureWithRoles lets us test role based security by looking at the 'roles' doc option.
 	//
 	// ROLES admin.write,user.{ID}.write ,   user.{User.ID}.admin, junk.{NotReal}.crap
@@ -330,6 +351,7 @@ type FailAlwaysErrorRequest struct {
 	Error         EventError
 	RequestValue  string
 	ResponseValue string
+	Text          string
 }
 
 type FailAlwaysErrorResponse struct {

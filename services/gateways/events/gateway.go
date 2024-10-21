@@ -166,7 +166,7 @@ func (gw *Gateway) toStreamHandler(endpoint services.Endpoint, route services.En
 
 		if _, err := endpoint.Handler(ctx, serviceRequest); err != nil {
 			gw.errorListener(event.Route, err)
-			return nil
+			return err
 		}
 		return nil
 	}

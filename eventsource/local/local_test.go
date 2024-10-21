@@ -84,8 +84,9 @@ func (suite *LocalBrokerSuite) assertFired(sequence *testext.Sequence, expected 
 	// finished their work. It's all small, in-memory lists, so this should be more than
 	// enough time to be sure that the sequence contains the handler values.
 	// time.Sleep(25 * time.Millisecond)
-
 	wait.WithTimeout(sequence.WaitGroup(), 5*time.Second)
+	fmt.Printf("ACTUAL: %+v\n", sequence.Values())
+	fmt.Printf("EXPECT: %+v\n", expected)
 	suite.ElementsMatch(expected, sequence.Values())
 }
 
@@ -428,6 +429,31 @@ func (suite *LocalBrokerSuite) TestUnsubscribe() {
 	suite.publish(broker, "Foo", "I'm Back!")
 	suite.assertFired(results, []string{
 		"Foo:I'm Back!",
+	})
+}
+
+func (suite *LocalBrokerSuite) TestSubscribeErrorTopic() {
+	results := &testext.Sequence{}
+	broker := local.Broker()
+
+	suite.subscribe(broker, results, "Foo.Bar")
+	suite.subscribe(broker, results, "Foo.Bar:Error")
+	suite.subscribeGroup(broker, results, "Foo.Bar", "1", "X")
+	suite.subscribeGroup(broker, results, "Foo.Bar:Error", "2", "X")
+	suite.subscribeGroup(broker, results, "Error:Foo.Bar", "3", "X")
+
+	results.ResetWithWorkers(2)
+	suite.publish(broker, "Foo.Bar", "A")
+	suite.assertFired(results, []string{
+		"Foo.Bar:A",
+		"Foo.Bar:1:X:A",
+	})
+
+	results.ResetWithWorkers(2)
+	suite.publish(broker, "Foo.Bar:Error", "A")
+	suite.assertFired(results, []string{
+		"Foo.Bar:Error:A",
+		"Foo.Bar:Error:2:X:A",
 	})
 }
 
