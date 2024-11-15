@@ -69,6 +69,7 @@ func {{ $serviceFunc }}(handler {{ $serviceType }}, middleware ...services.Middl
 						    "{{ . }}",
 						  {{ end }}
 						},
+						Group:       "{{ .Group }}",
 						Status:      {{ .Status }},
 					},
 				{{ end }}

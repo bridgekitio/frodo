@@ -214,7 +214,7 @@ type FieldDeclaration struct {
 	Pointer bool
 	// Documentation are all of the comments documenting this field.
 	Documentation DocumentationLines
-	// Binding describes the custom binding instructions used when unmarshaling request data onto this field.
+	// Binding describes the custom binding instructions used when unmarshalling request data onto this field.
 	Binding *FieldBindingOptions
 }
 
@@ -236,7 +236,7 @@ func (opts FieldBindingOptions) NotOmit() bool {
 // ModuleDeclaration contains information about the Go module that the service belongs
 // to. This is information scraped from project's "go.mod" file.
 type ModuleDeclaration struct {
-	// Name is the fully qualified module name (e.g. "github.com/someuser/modulename")
+	// Name is the fully qualified module name (e.g. "github.com/some_user/module_name")
 	Name string
 	// Directory is the absolute path to the root directory of the module (where go.mod resides).
 	Directory string
@@ -251,7 +251,7 @@ func (module ModuleDeclaration) GoMod() string {
 type PackageDeclaration struct {
 	// Name is just the raw package name (no path info)
 	Name string
-	// Import is the fully qualified package name (e.g. "github.com/someuser/modulename/foo/bar/baz")
+	// Import is the fully qualified package name (e.g. "github.com/some_user/module_name/foo/bar/baz")
 	Import string
 	// Directory is the absolute path to the package.
 	Directory string
@@ -467,8 +467,10 @@ type GatewayRoute struct {
 	Method string
 	// Path defines the URL pattern to provide to the gateway's router/mux to access this operation.
 	Path string
-	// Status indicates what success status code the gateway should use when responding via HTTP (e.g. 200, 202, etc)
+	// Status indicates what success status code the gateway should use when responding via HTTP (e.g. 200, 202, etc.)
 	Status int
+	// Group provides additional routing/grouping info that means different things to different gateways.
+	Group string
 	// RouteType describes how the gateway or client should handle implementation of this endpoint (e.g. REST request vs websocket).
 	RouteType RouteType
 }
@@ -621,7 +623,7 @@ type TypeDeclaration struct {
 	Name string
 	// Type is the raw Go type information that we used to build this snapshot.
 	Type types.Type
-	// Kind classifies our types. Our definition aligns fairly closely with the reflect package's definition, so
+	// Kind classifies our types. Our definition aligns fairly closely with the "reflect" package's definition, so
 	// we use it to describe whether a type, at its lowest level, describes a struct, int, slice, etc.
 	Kind reflect.Kind
 	// Elem is used by slice and map-like declarations to describe the type info for the underlying value type.
@@ -634,7 +636,7 @@ type TypeDeclaration struct {
 	Fields FieldDeclarations
 	// Documentation are all of the comments documenting this operation.
 	Documentation DocumentationLines
-	// Implements contains some quick checks for whether or not this type implements the various
+	// Implements contains some quick checks for whether this type implements the various
 	// single function interfaces used to handle raw data responses.
 	Implements struct {
 		// MarshalJSON is true when the type implements custom JSON marshal logic.
@@ -677,7 +679,7 @@ func (t TypeDeclaration) MapLike() bool {
 	return t.Kind == reflect.Map
 }
 
-// PrimitiveLike returns true for types that represent some sort of basic/primitive type like numbers/bools/strings.
+// PrimitiveLike returns true for types that represent some sort of basic/primitive type like numbers/booleans/strings.
 func (t TypeDeclaration) PrimitiveLike() bool {
 	return t.Kind == reflect.String ||
 		t.Kind == reflect.Bool ||
@@ -714,7 +716,7 @@ func (t TypeDeclaration) NonOmittedFields() FieldDeclarations {
 // TypeRegistry is a quick lookup of all types we encountered when processing your declaration file.
 type TypeRegistry map[string]*TypeDeclaration
 
-// Lookup finds our parsed snapshot for the raw type. It returns the snapshot an an "ok" boolean to indicate
+// Lookup finds our parsed snapshot for the raw type. It returns the snapshot an "ok" boolean to indicate
 // whether we found it or not.
 func (reg TypeRegistry) Lookup(t types.Type) (*TypeDeclaration, bool) {
 	key := reg.key(t, t.String())
@@ -722,7 +724,7 @@ func (reg TypeRegistry) Lookup(t types.Type) (*TypeDeclaration, bool) {
 	return info, ok
 }
 
-// LookupByName finds our parsed snapshot for the type name. It returns the snapshot an an "ok" boolean to indicate
+// LookupByName finds our parsed snapshot for the type name. It returns the snapshot an "ok" boolean to indicate
 // whether we found it or not.
 func (reg TypeRegistry) LookupByName(name string) (*TypeDeclaration, bool) {
 	info, ok := reg[strings.ToLower(name)]

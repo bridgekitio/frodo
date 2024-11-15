@@ -7,6 +7,7 @@ import (
 	"go/parser"
 	"go/token"
 	"go/types"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -843,12 +844,9 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 		// Event gateway options
 		//
 		case strings.HasPrefix(line, "ON "):
-			function.Routes = append(function.Routes, &GatewayRoute{
-				Function:    function,
-				GatewayType: "EVENTS",
-				Method:      "ON",
-				Path:        strings.TrimSpace(line[3:]),
-			})
+			if route := parseOptionON(ctx, function, line); route != nil {
+				function.Routes = append(function.Routes, route)
+			}
 
 		//
 		// General purpose options (like for security/metadata)
@@ -862,6 +860,19 @@ func ApplyFunctionDocumentation(ctx *Context, function *ServiceFunctionDeclarati
 		}
 	}
 	function.Documentation = function.Documentation.Trim()
+}
+
+func parseOptionON(_ *Context, function *ServiceFunctionDeclaration, line string) *GatewayRoute {
+	tokens := strings.Fields(strings.TrimSpace(line))
+	switch {
+	case len(tokens) == 2 && tokens[0] == "ON":
+		return &GatewayRoute{Function: function, GatewayType: "EVENTS", Method: "ON", Path: tokens[1], Group: ""}
+	case len(tokens) == 4 && tokens[0] == "ON" && tokens[2] == "GROUP":
+		return &GatewayRoute{Function: function, GatewayType: "EVENTS", Method: "ON", Path: tokens[1], Group: tokens[3]}
+	default:
+		log.Println("Warning: invalid ON doc option format: '" + line + "'")
+		return nil
+	}
 }
 
 // ApplyTypeDocumentation takes the documentation comment block above your struct/alias type

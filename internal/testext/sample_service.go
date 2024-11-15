@@ -144,11 +144,24 @@ type SampleService interface {
 	// ON SampleService.Chain2
 	Chain2OnSuccess(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
 
-	// Chain2OnError
+	// Chain2OnError listens for errors that occur on calls to Chain2
 	//
 	// HTTP OMIT
 	// ON SampleService.Chain2:Error
 	Chain2OnError(ctx context.Context, request *FailAlwaysErrorRequest) (*FailAlwaysErrorResponse, error)
+
+	// Chain1GroupStar listens for calls to Chain1, but rather than being part of a consumer group that only lets
+	// one instance of the service run it, it should define its own group that lets EVERY instance of this service
+	// react to this event.
+	//
+	// ON SampleService.Chain1 GROUP *
+	Chain1GroupStar(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
+
+	// Chain1GroupFooBar listens for calls to Chain1, but rather than being part of a consumer group that only lets
+	// one instance of the service run it, it should define its own shared group name.
+	//
+	// ON SampleService.Chain1 GROUP FooBar
+	Chain1GroupFooBar(ctx context.Context, request *SampleRequest) (*SampleResponse, error)
 
 	// SecureWithRoles lets us test role based security by looking at the 'roles' doc option.
 	//
