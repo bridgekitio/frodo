@@ -70,6 +70,8 @@ type EndpointRoute struct {
 	// this slice to []string{"UserID", "TransactionID"}. This allows you to quickly bind only the
 	// values you expect in the pattern.
 	PathParams []string
+	// Group provides additional routing/grouping info that means different things to different gateways.
+	Group string
 	// Status is mainly used by API gateway routes to determine what HTTP status code we should
 	// return to the caller when this endpoint succeeds. By default, this is 200.
 	Status int

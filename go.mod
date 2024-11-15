@@ -1,9 +1,9 @@
 module github.com/bridgekitio/frodo
 
-go 1.22
+go 1.23.0
 
 require (
-	github.com/nats-io/nats.go v1.33.1
+	github.com/nats-io/nats.go v1.37.0
 	github.com/spf13/cobra v1.8.0
 	github.com/stretchr/testify v1.8.4
 	golang.org/x/mod v0.15.0

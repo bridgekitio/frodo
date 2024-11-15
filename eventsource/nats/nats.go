@@ -14,6 +14,7 @@ import (
 var ErrNotConnected = fmt.Errorf("not connected")
 var ErrInvalidNamespace = fmt.Errorf("key does not have valid namespace: e.g. 'usercreated' instead of 'user.created'")
 
+// Broker creates a new event broker that distributes messages using NATS JetStream queues/groups.
 func Broker(options ...Option) eventsource.Broker {
 	c := client{
 		uri:               "nats://127.0.0.1:4222",
@@ -27,7 +28,7 @@ func Broker(options ...Option) eventsource.Broker {
 		option(&c)
 	}
 
-	if c.conn, c.err = nats.Connect(c.uri); c.err != nil {
+	if c.conn, c.err = nats.Connect(c.uri, nats.UserInfo(c.username, c.password)); c.err != nil {
 		c.err = fmt.Errorf("nats connect error: %w", c.err)
 		return &c
 	}
@@ -45,6 +46,8 @@ type client struct {
 
 	streams       map[string]*nats.StreamInfo
 	subscriptions []subscription
+	username      string
+	password      string
 
 	retentionMaxAge   time.Duration
 	retentionMaxMsgs  int64
@@ -216,5 +219,12 @@ func WithMaxBytes(maxBytes int64) Option {
 func WithMaxMsgs(maxMsgs int64) Option {
 	return func(c *client) {
 		c.retentionMaxMsgs = maxMsgs
+	}
+}
+
+func WithUserInfo(username, password string) Option {
+	return func(c *client) {
+		c.username = username
+		c.password = password
 	}
 }

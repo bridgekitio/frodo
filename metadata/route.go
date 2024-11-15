@@ -46,6 +46,8 @@ type EndpointRoute struct {
 	// that requests get to this endpoint. For API endpoints, it's the request path
 	// like "/user/{ID}" and for event endpoints, it's the subscription key like "FooService.Save".
 	Path string
+	// Group provides additional routing/grouping info that means different things to different gateways.
+	Group string
 	// Status passes along the route's HTTP ### value from doc options when applicable. This is
 	// automatically set to 200 for event-based routes for a consistent "OK nothing went wrong" default.
 	Status int

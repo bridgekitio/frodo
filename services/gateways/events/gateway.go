@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math/rand/v2"
 	"strconv"
 	"sync"
 
@@ -102,9 +103,19 @@ func (gw *Gateway) Register(endpoint services.Endpoint, endpointRoute services.E
 	// Lastly, we're not going to actually send these subscriptions to NATS/Redis/etc. yet. The
 	// broker might not have been started up yet, so we just want to construct and capture the
 	// handler information for what we *will* subscribe to once Listen() is fired on this gateway.
+	var consumerGroup string
+	switch endpointRoute.Group {
+	case "":
+		consumerGroup = endpoint.QualifiedName()
+	case "*":
+		consumerGroup = endpoint.QualifiedName() + "." + strconv.FormatUint(rand.Uint64(), 10)
+	default:
+		consumerGroup = endpointRoute.Group
+	}
+
 	gw.routes = append(gw.routes, &route{
 		key:     endpointRoute.Path,
-		group:   endpoint.QualifiedName(),
+		group:   consumerGroup,
 		handler: gw.toStreamHandler(endpoint, endpointRoute),
 	})
 }
@@ -161,6 +172,7 @@ func (gw *Gateway) toStreamHandler(endpoint services.Endpoint, route services.En
 			Type:        gw.Type().String(),
 			Method:      route.Method,
 			Path:        route.Path,
+			Group:       route.Group,
 			Status:      200, // we don't have a doc option for setting this on event routes, so use sane default.
 		})
 

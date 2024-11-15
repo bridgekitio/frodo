@@ -378,10 +378,15 @@ func (suite *ServerSuite) TestEventChainErrorMidSequence() {
 	suite.Require().Equal("Abide", suite.responseText(res))
 
 	suite.assertInvoked(calls, []string{
-		// The first call happens normally.
+		// The first call happens normally, as  do the calls that are not part of the standard, shared consumer group.
+		// NOTE: we can only rely on this ordering because we're using the local broker for these tests.
 		"Chain1:Abide",
+		"Chain1GroupStar:*:Abide",
+		"Chain1GroupFooBar:FooBar:Abide",
+
 		// The second call does fire, it just returns an error.
 		"Chain2:Abide",
+
 		// The third call should be "Chain2OnError", not the OnSuccess version.
 		//
 		// IMPORTANT DETAIL: The 'Text' attribute is still "Abide" because the error event receives the INPUT/REQUEST

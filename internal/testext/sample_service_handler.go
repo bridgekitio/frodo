@@ -213,6 +213,18 @@ func (s SampleServiceHandler) Chain2OnError(_ context.Context, req *FailAlwaysEr
 	return &FailAlwaysErrorResponse{}, nil
 }
 
+func (s SampleServiceHandler) Chain1GroupStar(ctx context.Context, req *SampleRequest) (*SampleResponse, error) {
+	route := metadata.Route(ctx)
+	s.Sequence.Append("Chain1GroupStar:" + route.Group + ":" + req.Text)
+	return &SampleResponse{Text: req.Text}, nil
+}
+
+func (s SampleServiceHandler) Chain1GroupFooBar(ctx context.Context, req *SampleRequest) (*SampleResponse, error) {
+	route := metadata.Route(ctx)
+	s.Sequence.Append("Chain1GroupFooBar:" + route.Group + ":" + req.Text)
+	return &SampleResponse{Text: req.Text}, nil
+}
+
 func (s SampleServiceHandler) SecureWithRoles(ctx context.Context, req *SampleSecurityRequest) (*SampleSecurityResponse, error) {
 	s.Sequence.Append("SecureWithRoles:" + req.ID)
 	return &SampleSecurityResponse{Roles: metadata.Route(ctx).Roles}, nil
