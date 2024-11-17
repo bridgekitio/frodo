@@ -58,8 +58,33 @@ func (encoder JSONEncoder) encodeValues(prefix string, rawValue any, out url.Val
 		}
 
 		field := valueType.Field(i)
-		fieldKey := strings.TrimPrefix(prefix+"."+reflection.BindingName(field), ".")
 		fieldValue := valueField.Interface()
+
+		// Let's say you have a request struct that looks like this:
+		//
+		//    type Paging struct {
+		//        PageNumber int
+		//        PageSize   int
+		//    }
+		//    type Request struct {
+		//        Paging         // <-- Embedded / Anonymous
+		//        Cursor Paging
+		//        Text   string
+		//    }
+		//
+		// When we build the values map, we don't want to put "Paging.PageNumber"->5 in there. We want to put
+		// just "PageNumber"->5 in the map. So don't include the field name for embedded structs. BUT... we do
+		// want to include the field name in the Cursor case because it's not embedded, so "Cursor.PageNumber"->5
+		// is exactly what we want. That's what we're checking for here.
+		var fieldKey string
+		switch {
+		case field.Anonymous:
+			fieldKey = prefix
+		case prefix == "":
+			fieldKey = reflection.BindingName(field)
+		default:
+			fieldKey = prefix + "." + reflection.BindingName(field)
+		}
 
 		// We want to honor your desired JSON formats. The only tweak we make is that we strip
 		// the outer quotes if your value marshals to a JSON string. The JSON decoder will automatically

@@ -88,7 +88,7 @@ func (c *client) SubscribeGroup(key string, group string, handlerFunc eventsourc
 	// NATS doesn't like periods in consumer group names, so convert them to underscores.
 	group = strings.ReplaceAll(group, ".", "_")
 
-	sub, err := c.jetstream.QueueSubscribe(key, group, c.toMsgHandler(handlerFunc))
+	sub, err := c.jetstream.QueueSubscribe(key, group, c.toMsgHandler(handlerFunc), nats.StartTime(time.Now()))
 	if err != nil {
 		return nil, fmt.Errorf("nats subscribe group: %w", err)
 	}
