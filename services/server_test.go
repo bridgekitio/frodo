@@ -60,7 +60,7 @@ func (suite *ServerSuite) start() (*services.Server, *testext.Sequence, func()) 
 			sequence.Append("OnPanic:" + err.Error())
 		}),
 	)
-	go func() { _ = server.Run() }()
+	go func() { _ = server.Run(context.Background()) }()
 
 	// Kinda crappy, but we need some time to make sure the server is up. Sometimes
 	// this goes so fast that the test case fires before the server is fully running.

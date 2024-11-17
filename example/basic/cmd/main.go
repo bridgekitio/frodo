@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -25,7 +26,7 @@ func main() {
 
 	fmt.Println("Server running on http://localhost:8080")
 	go server.ShutdownOnInterrupt(2 * time.Second)
-	if err := server.Run(); err != nil {
+	if err := server.Run(context.Background()); err != nil {
 		panic(err)
 	}
 }
