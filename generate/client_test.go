@@ -38,7 +38,7 @@ func (suite *GeneratedClientSuite) startServer() (string, func()) {
 		services.Listen(apis.NewGateway(address)),
 		services.Register(gen.SampleServiceServer(testext.SampleServiceHandler{Sequence: sequence})),
 	)
-	go func() { _ = server.Run() }()
+	go func() { _ = server.Run(context.Background()) }()
 
 	// Kinda crappy, but we need some time to make sure the server is up. Sometimes
 	// this goes so fast that the test case fires before the server is fully running.

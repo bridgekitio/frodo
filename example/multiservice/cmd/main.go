@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -33,7 +34,7 @@ func main() {
 
 	// Fire up the API and shut down gracefully when we receive a SIGINT or SIGTERM signal.
 	go server.ShutdownOnInterrupt(10 * time.Second)
-	if err := server.Run(); err != nil {
+	if err := server.Run(context.Background()); err != nil {
 		panic(err)
 	}
 

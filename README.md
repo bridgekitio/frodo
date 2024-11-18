@@ -164,7 +164,7 @@ func main() {
         services.Listen(apis.NewGateway(":9000")),
         services.Register(calcService),
     )
-    server.Run()
+    server.Run(context.Background())
 }
 ```
 
@@ -422,7 +422,7 @@ func main() {
         services.Listen(events.NewGateway()), // <--- This is the only difference.
         services.Register(orderService),
     )
-    server.Run()
+    server.Run(context.Background())
 }
 ```
 
@@ -538,7 +538,7 @@ func main() {
         services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
         services.Register(orderService),
     )
-    server.Run()
+    server.Run(context.Background())
 }
 ```
 
@@ -817,7 +817,7 @@ func main() {
         events.WithBroker(natsBroker),
         events.WithErrorListener(handleEventError),
     ))
-    server.Run()
+    server.Run(context.Background())
 }
 
 // handleEventError fires EVERY time ANY event-based method invocation fails.
@@ -856,7 +856,7 @@ func main() {
         services.Listen(events.NewGateway()),
         services.Register(calcService),
     )
-    server.Run()
+    server.Run(context.Background())
 }
 
 func LogRequest(ctx context.Context, req any, next services.HandlerFunc) (any, error) {
@@ -916,7 +916,7 @@ func main() {
         services.Listen(events.NewGateway()),
         services.Register(calcService),
     )
-    server.Run()
+    server.Run(context.Background())
 }
 ```
 
@@ -1197,7 +1197,7 @@ server := services.NewServer(
     services.Listen(events.NewGateway()),
     services.Register(userService, groupService, mailService, orderService),
 )
-server.Run()
+server.Run(ctx)
 ```
 
 ### To Run Them Is Micro/Mini Services
@@ -1210,7 +1210,7 @@ server := services.NewServer(
     services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
     services.Register(userService),
 )
-server.Run()
+server.Run(ctx)
 
 // In groups/cmd/main.go
 groupService := groupGen.GroupServiceServer(groupHandler)
@@ -1219,7 +1219,7 @@ server := services.NewServer(
     services.Listen(events.NewGateway(events.WithBroker(natsBroker))),
     services.Register(groupService),
 )
-server.Run()
+server.Run(ctx)
 
 // And follow the pattern for the other 2 services...
 ```

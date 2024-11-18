@@ -42,6 +42,7 @@ func {{ $serviceFunc }}(handler {{ $serviceType }}, middleware ...services.Middl
 		Handler: handler,
 		Endpoints: []services.Endpoint{
 		{{ range .Service.Functions }}
+			{{ $fn := . }}
 			{
 				ServiceName: "{{ $serviceName }}",
 				Name:        "{{ .Name }}",
@@ -71,6 +72,13 @@ func {{ $serviceFunc }}(handler {{ $serviceType }}, middleware ...services.Middl
 						},
 						Group:       "{{ .Group }}",
 						Status:      {{ .Status }},
+						ServiceName: "{{ $serviceName }}",
+						Name:        "{{ $fn.Name }}",
+						Roles:  []string{
+						{{- range $fn.Roles }}
+							"{{ . }}",
+						{{- end }}
+						},
 					},
 				{{ end }}
 				},

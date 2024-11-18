@@ -52,7 +52,7 @@ func (suite *LocalBrokerSuite) publish(broker eventsource.Broker, key string, va
 }
 
 func (suite *LocalBrokerSuite) subscribe(broker eventsource.Broker, sequence *testext.Sequence, key string) eventsource.Subscription {
-	subs, err := broker.Subscribe(key, func(ctx context.Context, evt *eventsource.EventMessage) error {
+	subs, err := broker.Subscribe(context.Background(), key, func(ctx context.Context, evt *eventsource.EventMessage) error {
 		if string(evt.Payload) == "error" {
 			return fmt.Errorf("nope")
 		}
@@ -66,7 +66,7 @@ func (suite *LocalBrokerSuite) subscribe(broker eventsource.Broker, sequence *te
 }
 
 func (suite *LocalBrokerSuite) subscribeGroup(broker eventsource.Broker, sequence *testext.Sequence, key string, group string, which string) eventsource.Subscription {
-	subs, err := broker.SubscribeGroup(key, group, func(ctx context.Context, evt *eventsource.EventMessage) error {
+	subs, err := broker.SubscribeGroup(context.Background(), key, group, func(ctx context.Context, evt *eventsource.EventMessage) error {
 		if string(evt.Payload) == "error" {
 			return fmt.Errorf("nope")
 		}
@@ -404,7 +404,7 @@ func (suite *LocalBrokerSuite) TestUnsubscribe() {
 	})
 
 	results.ResetWithWorkers(2)
-	suite.NoError(s1.Unsubscribe())
+	suite.NoError(s1.Close())
 	suite.publish(broker, "Foo", "B")
 	suite.assertFired(results, []string{
 		"*:B",
@@ -412,14 +412,14 @@ func (suite *LocalBrokerSuite) TestUnsubscribe() {
 	})
 
 	results.ResetWithWorkers(1)
-	suite.NoError(s2.Unsubscribe())
+	suite.NoError(s2.Close())
 	suite.publish(broker, "Foo", "C")
 	suite.assertFired(results, []string{
 		"*:C",
 	})
 
 	results.ResetWithWorkers(0)
-	suite.NoError(s3.Unsubscribe())
+	suite.NoError(s3.Close())
 	suite.publish(broker, "Foo", "D")
 	suite.assertFired(results, []string{})
 
@@ -466,14 +466,14 @@ func (suite *LocalBrokerSuite) TestSubscriberContext() {
 	broker := local.Broker()
 	publishCtx := context.WithValue(context.Background(), "foo", "bar")
 
-	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+	_, _ = broker.Subscribe(context.Background(), "test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
 		defer wg.Done()
 		foo, _ := ctx.Value("foo").(string)
 		suite.Require().Equal("", foo, "Subscriber context should not be the same as publisher context")
 		return nil
 	})
 
-	_, _ = broker.Subscribe("test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
+	_, _ = broker.Subscribe(context.Background(), "test.context", func(ctx context.Context, evt *eventsource.EventMessage) error {
 		defer wg.Done()
 
 		foo, _ := ctx.Value("foo").(string)

@@ -97,7 +97,7 @@ func (b *broker) publishMessage(ctx context.Context, sub *subscription, msg even
 	}
 }
 
-func (b *broker) Subscribe(key string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
+func (b *broker) Subscribe(ctx context.Context, key string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
 	// We want this handler to absolutely fire no matter what other subscribers exist. Even if there are other
 	// subscribers for the same key, we want ALL of them to fire because they're not defined in the same group.
 	//
@@ -109,10 +109,14 @@ func (b *broker) Subscribe(key string, handlerFunc eventsource.EventHandlerFunc)
 	// to displace NATS as a distributed, broker, but perfectly fine for a reference implementation of the Event
 	// Gateway in frodo.
 	group := "isolated." + strconv.FormatUint(rand.Uint64(), 10)
-	return b.SubscribeGroup(key, group, handlerFunc)
+	return b.SubscribeGroup(ctx, key, group, handlerFunc)
 }
 
-func (b *broker) SubscribeGroup(key string, groupKey string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
+func (b *broker) SubscribeGroup(ctx context.Context, key string, groupKey string, handlerFunc eventsource.EventHandlerFunc) (eventsource.Subscription, error) {
+	if ctx.Err() != nil {
+		return nil, fmt.Errorf("broker subscription failed: %w", ctx.Err())
+	}
+
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
@@ -214,7 +218,7 @@ type subscription struct {
 	handlerFunc eventsource.EventHandlerFunc
 }
 
-func (sub *subscription) Unsubscribe() error {
+func (sub *subscription) Close() error {
 	sub.broker.unsubscribe(sub)
 	return nil
 }

@@ -4,8 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
+	"slices"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -51,7 +54,7 @@ type Gateway interface {
 	//     even when things shut down as expected. Gateway instances should keep their
 	//     whore mouths shut and only report an error when there's actually something
 	//     to be concerned about.
-	Listen() error
+	Listen(ctx context.Context) error
 	// Shutdown should attempt to gracefully wind down processing of requests. Where
 	// possible, you should use the context to determine if/when you should give up
 	// on dealing with existing work. Implementations should try to follow these rules:
@@ -128,6 +131,7 @@ func NewServer(options ...ServerOption) *Server {
 		onPanic: func(err error, stack []byte) {
 			fmt.Printf("Panic: %v\n%v\n", err, string(stack))
 		},
+		logger: slog.New(slog.NewJSONHandler(nopWriter{}, nil)),
 	}
 	for _, option := range options {
 		option(&instance)
@@ -152,6 +156,12 @@ func NewServer(options ...ServerOption) *Server {
 	return &instance
 }
 
+type nopWriter struct{}
+
+func (w nopWriter) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
 // Server is the primordial component that wrangles all of your services and gateways to get
 // them talking to each other. You should not create one of these yourself. Instead, you should
 // use the NewServer() constructor to do that for you.
@@ -170,6 +180,8 @@ type Server struct {
 	// onPanic is a customizable callback that lets you perform custom logging/logic whenever the server
 	// recovers from a panic that occurred during your function calls.
 	onPanic OnPanicFunc
+	// logger customizes how you want low-level frodo logging to be written.
+	logger *slog.Logger
 }
 
 func (server *Server) registerEndpoint(endpoint Endpoint) {
@@ -189,6 +201,28 @@ func (server *Server) registerEndpoint(endpoint Endpoint) {
 			gw.Register(endpoint, route)
 		}
 	}
+}
+
+func (server *Server) Routes(gatewayType GatewayType) []EndpointRoute {
+	var routes []EndpointRoute
+	for _, service := range server.services {
+		for _, endpoint := range service.Endpoints {
+			for _, route := range endpoint.Routes {
+				if route.GatewayType == gatewayType {
+					routes = append(routes, route)
+				}
+			}
+		}
+	}
+
+	slices.SortFunc(routes, func(a, b EndpointRoute) int {
+		pathComp := strings.Compare(a.Path, b.Path)
+		if pathComp == 0 {
+			return strings.Compare(a.Method, b.Method)
+		}
+		return pathComp
+	})
+	return routes
 }
 
 // Invoke allows you to manually trigger any registered service endpoint/function given the name
@@ -211,12 +245,13 @@ func (server *Server) Invoke(ctx context.Context, serviceName string, methodName
 // Run turns on every gateway currently assigned to this service runtime. Call this
 // once your service setup and registration is complete in order to start accepting
 // incoming requests through your gateway(s).
-func (server *Server) Run() error {
+func (server *Server) Run(ctx context.Context) error {
 	server.shutdownComplete.Add(1)
 
-	errs, _ := fail.NewGroup(context.Background())
+	errs, _ := fail.NewGroup(ctx)
 	for _, gw := range server.gateways {
-		errs.Go(gw.Listen)
+		server.logger.Info("[frodo] starting gateway: " + gw.Type().String())
+		errs.Go(func() error { return gw.Listen(ctx) })
 	}
 
 	// We had an issue starting up the server, so just get out and
@@ -270,7 +305,7 @@ func (server *Server) Shutdown(ctx context.Context) error {
 //	void main() {
 //		server := services.NewServer(...)
 //		go server.ShutdownOnInterrupt(10*time.Second)
-//		server.Run()
+//		server.Run(context.Background())
 //	}
 func (server *Server) ShutdownOnInterrupt(gracefulTimeout time.Duration) {
 	// Block while waiting for a SIGTERM or SIGINT signal from the shell.
@@ -322,5 +357,12 @@ type OnPanicFunc func(err error, stack []byte)
 func OnPanic(handler OnPanicFunc) ServerOption {
 	return func(server *Server) {
 		server.onPanic = handler
+	}
+}
+
+// WithLogger customizes the logger used by the server to output various bits of debugging info.
+func WithLogger(logger *slog.Logger) ServerOption {
+	return func(server *Server) {
+		server.logger = logger
 	}
 }

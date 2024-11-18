@@ -33,7 +33,7 @@ type Endpoint struct {
 	//        "group.{Group.ID}.write",
 	//    }
 	//
-	// Notices that the roles should be allowed to have path variables that we can fill in
+	// Notice that the roles should be allowed to have path variables that we can fill in
 	// at runtime with the incoming binding data.
 	Roles []string
 	// Routes defines the actual ingress routes that allow this service operation to
@@ -75,4 +75,12 @@ type EndpointRoute struct {
 	// Status is mainly used by API gateway routes to determine what HTTP status code we should
 	// return to the caller when this endpoint succeeds. By default, this is 200.
 	Status int
+	// Roles helps support role-based security by defining role patterns to indicate which
+	// users are allowed to access this endpoint. This is the same as the Roles in the parent Endpoint that
+	// this route belongs to.
+	Roles []string
+	// ServiceName is the name of the service that this operation is part of.
+	ServiceName string
+	// Name is the name of the function/operation that this endpoint describes.
+	Name string
 }
