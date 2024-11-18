@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand/v2"
 	"strconv"
 	"sync"
 
@@ -100,16 +99,25 @@ func (gw *Gateway) Register(endpoint services.Endpoint, endpointRoute services.E
 	// By using the fully qualified name, we ensure that no matter how much redundancy we have in
 	// our system, every handler fires at most once.
 	//
-	// Lastly, we're not going to actually send these subscriptions to NATS/Redis/etc. yet. The
+	// Lastly, we're not going to actually perform these subscriptions to NATS/Redis/etc yet. The
 	// broker might not have been started up yet, so we just want to construct and capture the
 	// handler information for what we *will* subscribe to once Listen() is fired on this gateway.
+	//
+	//
 	var consumerGroup string
 	switch endpointRoute.Group {
 	case "":
+		// The parser saw something like "ON FooService.Bar" where no group was specified. Default to the
+		// group described in the giant fuck-off comment above so that only one instance of the endpoint handles it.
 		consumerGroup = endpoint.QualifiedName()
 	case "*":
-		consumerGroup = endpoint.QualifiedName() + "." + strconv.FormatUint(rand.Uint64(), 10)
+		// The parser saw something like "ON FooService.Bar GROUP *" which indicates that you want ALL instances of the
+		// servers running this endpoint to get a copy of this message. You want a more traditional Pub/Sub, so we just
+		// don't specify a group. On Listen(), this will result in calling broker.Subscribe() instead of broker.SubscribeGroup().
+		consumerGroup = ""
 	default:
+		// The parser saw something like "ON FooService.Bar GROUP Hug", so we're being asked to register this endpoint
+		// handler as a consumer in the "Hug" group/pool.
 		consumerGroup = endpointRoute.Group
 	}
 
@@ -198,7 +206,7 @@ func (gw *Gateway) Middleware() services.MiddlewareFuncs {
 
 // Listen causes the gateway to start subscribing/listening for events from the broker. This
 // will block until we're told to stop by calling Shutdown().
-func (gw *Gateway) Listen() error {
+func (gw *Gateway) Listen(ctx context.Context) error {
 	errs, _ := fail.NewGroup(context.Background())
 
 	for _, gatewayRoute := range gw.routes {
@@ -207,8 +215,16 @@ func (gw *Gateway) Listen() error {
 		r := gatewayRoute
 
 		errs.Go(func() (err error) {
-			r.subs, err = gw.broker.SubscribeGroup(r.key, r.group, r.handler)
-			return err
+			switch r.group {
+			case "":
+				// The interface had "ON FooService.Bar GROUP *"
+				r.subs, err = gw.broker.Subscribe(ctx, r.key, r.handler)
+				return err
+			default:
+				// The interface had "ON FooService.Bar" without specifying a group to get the default grouping behavior.
+				r.subs, err = gw.broker.SubscribeGroup(ctx, r.key, r.group, r.handler)
+				return err
+			}
 		})
 	}
 
@@ -228,7 +244,7 @@ func (gw *Gateway) Shutdown(ctx context.Context) error {
 	errs, _ := fail.NewGroup(ctx)
 	for _, r := range gw.routes {
 		if r.subs != nil {
-			errs.Go(r.subs.Unsubscribe)
+			errs.Go(r.subs.Close)
 		}
 	}
 

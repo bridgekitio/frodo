@@ -54,7 +54,7 @@ type Gateway interface {
 	//     even when things shut down as expected. Gateway instances should keep their
 	//     whore mouths shut and only report an error when there's actually something
 	//     to be concerned about.
-	Listen() error
+	Listen(ctx context.Context) error
 	// Shutdown should attempt to gracefully wind down processing of requests. Where
 	// possible, you should use the context to determine if/when you should give up
 	// on dealing with existing work. Implementations should try to follow these rules:
@@ -251,7 +251,7 @@ func (server *Server) Run(ctx context.Context) error {
 	errs, _ := fail.NewGroup(ctx)
 	for _, gw := range server.gateways {
 		server.logger.Info("[frodo] starting gateway: " + gw.Type().String())
-		errs.Go(gw.Listen)
+		errs.Go(func() error { return gw.Listen(ctx) })
 	}
 
 	// We had an issue starting up the server, so just get out and

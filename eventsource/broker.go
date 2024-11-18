@@ -2,6 +2,7 @@ package eventsource
 
 import (
 	"context"
+	"io"
 	"strings"
 	"time"
 )
@@ -28,7 +29,7 @@ type Publisher interface {
 type Subscriber interface {
 	// Subscribe creates a one-off listener that will fire your handler function for
 	// EVERY instance of the event/key.
-	Subscribe(key string, handlerFunc EventHandlerFunc) (Subscription, error)
+	Subscribe(ctx context.Context, key string, handlerFunc EventHandlerFunc) (Subscription, error)
 
 	// SubscribeGroup creates a listener that is a member of a "Consumer Group". If there
 	// are other listeners in the same 'group', only one of them should have their
@@ -36,14 +37,14 @@ type Subscriber interface {
 	//
 	// This is akin to a "Consumer Group" if you are from the Kafka world or "Queue Group" if
 	// NATS is more of your jam.
-	SubscribeGroup(key string, group string, handlerFunc EventHandlerFunc) (Subscription, error)
+	SubscribeGroup(ctx context.Context, key string, group string, handlerFunc EventHandlerFunc) (Subscription, error)
 }
 
 // Subscription is simply a registration pointer that can allow you to stop listening at any time.
 type Subscription interface {
-	// Unsubscribe notifies the Broker/Subscriber that created this subscription that we
+	// Closer contains 'Close()' which notifies the Broker/Subscriber that created this subscription that we
 	// want to stop receiving events. Typically, this is done during process shutdown automatically.
-	Unsubscribe() error
+	io.Closer
 }
 
 // EventHandlerFunc is the signature for a function that can asynchronously handle an incoming event

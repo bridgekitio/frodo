@@ -69,7 +69,7 @@ func (gw *Gateway) Type() services.GatewayType {
 // web server code already does. The only difference is that when the gateway shuts
 // down gracefully, this will return nil instead of http.ErrServerClosed. All other
 // errors are propagated back.
-func (gw *Gateway) Listen() error {
+func (gw *Gateway) Listen(_ context.Context) error {
 	// The Go 1.22 ServeMux doesn't have a special hook for missing routes. You just need to add some "catch-all"
 	// routes that are used when none of your service functions' paths match. We do this here because at this point
 	// all "real" routes should be in place.
