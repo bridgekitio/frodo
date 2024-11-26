@@ -3,9 +3,9 @@ package gen
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/example/multiservice/dismissal"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/example/multiservice/dismissal"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 func NewDismissService(handler dismissal.DismissService, middleware ...services.MiddlewareFunc) *services.Service {

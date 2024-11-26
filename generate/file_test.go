@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bridgekitio/frodo/generate"
+	"github.com/bridgekit-io/frodo/generate"
 	"github.com/stretchr/testify/suite"
 )
 

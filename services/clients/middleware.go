@@ -3,7 +3,7 @@ package clients
 import (
 	"net/http"
 
-	"github.com/bridgekitio/frodo/metadata"
+	"github.com/bridgekit-io/frodo/metadata"
 )
 
 // RoundTripperFunc matches the signature of the standard http.RoundTripper interface.

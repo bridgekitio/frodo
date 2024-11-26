@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/bridgekitio/frodo/generate"
-	"github.com/bridgekitio/frodo/parser"
+	"github.com/bridgekit-io/frodo/generate"
+	"github.com/bridgekit-io/frodo/parser"
 )
 
 // templateOption can be embedded on a command request struct to give it the option to supply your

@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/bridgekitio/frodo/example/basic/calc"
-	calcgen "github.com/bridgekitio/frodo/example/basic/calc/gen"
+	"github.com/bridgekit-io/frodo/example/basic/calc"
+	calcgen "github.com/bridgekit-io/frodo/example/basic/calc/gen"
 )
 
 func main() {

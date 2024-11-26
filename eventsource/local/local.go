@@ -10,9 +10,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bridgekitio/frodo/eventsource"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/slices"
+	"github.com/bridgekit-io/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/slices"
 )
 
 // Broker creates a new local/in-memory broker that dispatches events to subscribers

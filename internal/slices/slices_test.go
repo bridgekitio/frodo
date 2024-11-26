@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/bridgekitio/frodo/internal/slices"
+	"github.com/bridgekit-io/frodo/internal/slices"
 	"github.com/stretchr/testify/suite"
 )
 

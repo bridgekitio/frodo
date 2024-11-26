@@ -11,11 +11,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/testext"
-	gen "github.com/bridgekitio/frodo/internal/testext/gen"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services/clients"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/testext"
+	gen "github.com/bridgekit-io/frodo/internal/testext/gen"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services/clients"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -3,8 +3,8 @@ package cli
 import (
 	"log"
 
-	"github.com/bridgekitio/frodo/generate"
-	"github.com/bridgekitio/frodo/parser"
+	"github.com/bridgekit-io/frodo/generate"
+	"github.com/bridgekit-io/frodo/parser"
 	"github.com/spf13/cobra"
 )
 

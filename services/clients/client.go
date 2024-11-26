@@ -13,11 +13,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/codec"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/naming"
-	"github.com/bridgekitio/frodo/internal/quiet"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/codec"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/quiet"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 // NewClient constructs the RPC client that does the "heavy lifting" when communicating

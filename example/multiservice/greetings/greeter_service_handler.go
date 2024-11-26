@@ -3,7 +3,7 @@ package greetings
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/fail"
+	"github.com/bridgekit-io/frodo/fail"
 )
 
 type GreeterServiceHandler struct{}

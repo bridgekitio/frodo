@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bridgekitio/frodo/cli"
+	"github.com/bridgekit-io/frodo/cli"
 	"github.com/spf13/cobra"
 )
 

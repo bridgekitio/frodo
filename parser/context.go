@@ -13,7 +13,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/bridgekitio/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/naming"
 	"golang.org/x/tools/go/packages"
 )
 

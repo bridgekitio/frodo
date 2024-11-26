@@ -5,7 +5,7 @@ package naming_test
 import (
 	"testing"
 
-	"github.com/bridgekitio/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/naming"
 	"github.com/stretchr/testify/suite"
 )
 

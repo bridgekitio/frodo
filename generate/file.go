@@ -12,9 +12,9 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/bridgekitio/frodo/internal/naming"
-	"github.com/bridgekitio/frodo/internal/quiet"
-	"github.com/bridgekitio/frodo/parser"
+	"github.com/bridgekit-io/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/quiet"
+	"github.com/bridgekit-io/frodo/parser"
 )
 
 //go:embed templates/*

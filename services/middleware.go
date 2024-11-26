@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/naming"
-	"github.com/bridgekitio/frodo/internal/reflection"
-	"github.com/bridgekitio/frodo/internal/slices"
-	"github.com/bridgekitio/frodo/metadata"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/reflection"
+	"github.com/bridgekit-io/frodo/internal/slices"
+	"github.com/bridgekit-io/frodo/metadata"
 )
 
 // MiddlewareFunc is a function that can be used to decorate a service method/endpoint's handler.

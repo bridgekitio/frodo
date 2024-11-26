@@ -10,7 +10,7 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/bridgekitio/frodo/internal/reflection"
+	"github.com/bridgekit-io/frodo/internal/reflection"
 )
 
 // JSONEncoder simply uses the standard 'encoding/json' package to convert raw service

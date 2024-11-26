@@ -5,7 +5,7 @@ package parser_test
 import (
 	"testing"
 
-	"github.com/bridgekitio/frodo/parser"
+	"github.com/bridgekit-io/frodo/parser"
 	"github.com/stretchr/testify/suite"
 )
 

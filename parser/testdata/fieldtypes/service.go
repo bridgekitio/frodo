@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/parser/testdata"
+	"github.com/bridgekit-io/frodo/parser/testdata"
 	"github.com/spf13/cobra"
 )
 

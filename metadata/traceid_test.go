@@ -6,7 +6,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/bridgekitio/frodo/metadata"
+	"github.com/bridgekit-io/frodo/metadata"
 	"github.com/stretchr/testify/suite"
 )
 

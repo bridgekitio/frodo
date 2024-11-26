@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/example/basic/calc"
-	gen "github.com/bridgekitio/frodo/example/basic/calc/gen"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services"
-	"github.com/bridgekitio/frodo/services/gateways/apis"
-	"github.com/bridgekitio/frodo/services/gateways/events"
+	"github.com/bridgekit-io/frodo/example/basic/calc"
+	gen "github.com/bridgekit-io/frodo/example/basic/calc/gen"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services"
+	"github.com/bridgekit-io/frodo/services/gateways/apis"
+	"github.com/bridgekit-io/frodo/services/gateways/events"
 )
 
 func main() {

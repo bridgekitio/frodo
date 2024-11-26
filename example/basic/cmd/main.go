@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/example/basic/calc"
-	gen "github.com/bridgekitio/frodo/example/basic/calc/gen"
-	"github.com/bridgekitio/frodo/services"
-	"github.com/bridgekitio/frodo/services/gateways/apis"
-	"github.com/bridgekitio/frodo/services/gateways/events"
+	"github.com/bridgekit-io/frodo/example/basic/calc"
+	gen "github.com/bridgekit-io/frodo/example/basic/calc/gen"
+	"github.com/bridgekit-io/frodo/services"
+	"github.com/bridgekit-io/frodo/services/gateways/apis"
+	"github.com/bridgekit-io/frodo/services/gateways/events"
 )
 
 func main() {

@@ -2,7 +2,7 @@
 //
 //	Timestamp: Sun, 06 Nov 2022 16:46:37 EST
 //	Source:    calc/calc_service.go
-//	Generator: https://github.com/bridgekitio/frodo
+//	Generator: https://github.com/bridgekit-io/frodo
 package calc
 
 import (
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/example/basic/calc"
+	"github.com/bridgekit-io/frodo/example/basic/calc"
 )
 
 // MockCalculatorService allows you to program behaviors into a mock instance of CalculatorService. You supply

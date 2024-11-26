@@ -2,15 +2,15 @@
 //
 //	Timestamp: Mon, 03 Jul 2023 15:44:52 EDT
 //	Source:    sensitive/secret_service.go
-//	Generator: https://github.com/bridgekitio/frodo
+//	Generator: https://github.com/bridgekit-io/frodo
 package sensitive
 
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/example/authorization/sensitive"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/example/authorization/sensitive"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 // SecretServiceServer accepts your "real" SecretService instance (the thing that really does
