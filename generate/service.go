@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/bridgekitio/frodo/internal/quiet"
+	"github.com/bridgekit-io/frodo/internal/quiet"
 )
 
 // ServiceScaffold creates the bare minimum code required to have an frodo-powered service. It

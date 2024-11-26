@@ -5,7 +5,7 @@ package eventsource_test
 import (
 	"testing"
 
-	"github.com/bridgekitio/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/eventsource"
 	"github.com/stretchr/testify/assert"
 )
 

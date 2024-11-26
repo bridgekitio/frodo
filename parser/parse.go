@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/implements"
-	"github.com/bridgekitio/frodo/internal/naming"
-	"github.com/bridgekitio/frodo/internal/slices"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/implements"
+	"github.com/bridgekit-io/frodo/internal/naming"
+	"github.com/bridgekit-io/frodo/internal/slices"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/tools/go/packages"
 )

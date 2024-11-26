@@ -8,13 +8,13 @@ import (
 	"strconv"
 	"sync"
 
-	"github.com/bridgekitio/frodo/codec"
-	"github.com/bridgekitio/frodo/eventsource"
-	"github.com/bridgekitio/frodo/eventsource/local"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/wait"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/codec"
+	"github.com/bridgekit-io/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/eventsource/local"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/wait"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 // NewGateway creates an event-sourced gateway that executes service methods based on event subscriptions.

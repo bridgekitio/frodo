@@ -4,7 +4,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/bridgekitio/frodo/internal/reflection"
+	"github.com/bridgekit-io/frodo/internal/reflection"
 	"github.com/stretchr/testify/suite"
 )
 

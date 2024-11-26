@@ -1,6 +1,6 @@
 # Frodo
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/bridgekitio/frodo)](https://goreportcard.com/report/github.com/bridgekitio/frodo)
+[![Go Report Card](https://goreportcard.com/badge/github.com/bridgekit-io/frodo)](https://goreportcard.com/report/github.com/bridgekit-io/frodo)
 
 *That's just, like, your opinion, man!*
 
@@ -24,8 +24,8 @@ Event-Driven communication with almost no extra code on your part.
 ## Getting Started
 
 ```shell
-go install github.com/bridgekitio/frodo@latest
-go get -u github.com/bridgekitio/frodo
+go install github.com/bridgekit-io/frodo@latest
+go get -u github.com/bridgekit-io/frodo
 
 # You may this if you get messages about invalid dependencies...
 go mod tidy
@@ -145,8 +145,8 @@ available for consumption.
 package main
 
 import (
-    "github.com/bridgekitio/frodo/services"
-    "github.com/bridgekitio/frodo/services/gateways/apis"
+    "github.com/bridgekit-io/frodo/services"
+    "github.com/bridgekit-io/frodo/services/gateways/apis"
 
     "github.com/your/project/calc"
     calcgen "github.com/your/project/calc/gen"
@@ -332,7 +332,7 @@ print('Sub(5, 2) = ${sub.Result}');
 ```
 
 For more examples of how to write services that let Frodo take
-care of the RPC/API boilerplate, take a look in the [example/](https://github.com/bridgekitio/frodo/tree/main/example)
+care of the RPC/API boilerplate, take a look in the [example/](https://github.com/bridgekit-io/frodo/tree/main/example)
 directory of this repo.
 
 ## Adding Event-Driven Methods
@@ -517,7 +517,7 @@ for using [NATS JetStream](https://docs.nats.io/nats-concepts/jetstream) out-of-
 ```go
 import (
     // ... other imports ...
-    "github.com/bridgekitio/frodo/eventsource/nats"
+    "github.com/bridgekit-io/frodo/eventsource/nats"
 )
 
 func main() {
@@ -731,7 +731,7 @@ package when you encounter a failure case:
 
 ```go
 import (
-    "github.com/bridgekitio/frodo/fail"
+    "github.com/bridgekit-io/frodo/fail"
 )
 
 func (svc UserService) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) {

@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 //go:generate ../../out/frodo server  $GOFILE --force

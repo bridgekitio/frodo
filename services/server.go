@@ -13,8 +13,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/metadata"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/metadata"
 )
 
 // GatewayType is a tagging value that gateways can use to classify themselves.

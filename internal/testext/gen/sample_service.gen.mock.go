@@ -2,7 +2,7 @@
 //
 //	Timestamp: Fri, 15 Nov 2024 12:49:05 EST
 //	Source:    sample_service.go
-//	Generator: https://github.com/bridgekitio/frodo
+//	Generator: https://github.com/bridgekit-io/frodo
 package testext
 
 import (
@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/internal/testext"
+	"github.com/bridgekit-io/frodo/internal/testext"
 )
 
 // MockSampleService allows you to program behaviors into a mock instance of SampleService. You supply

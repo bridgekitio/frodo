@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bridgekitio/frodo/codec"
-	"github.com/bridgekitio/frodo/internal/testext"
+	"github.com/bridgekit-io/frodo/codec"
+	"github.com/bridgekit-io/frodo/internal/testext"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -2,7 +2,7 @@
 //
 //   Timestamp: Thu, 29 Jun 2023 10:10:18 EDT
 //   Source:    calc/calc_service.go
-//   Generator: https://github.com/bridgekitio/frodo
+//   Generator: https://github.com/bridgekit-io/frodo
 //
 /* global fetch,module,window */
 'use strict';

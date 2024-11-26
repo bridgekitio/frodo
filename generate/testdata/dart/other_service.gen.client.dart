@@ -2,7 +2,7 @@
 //
 //   Timestamp: Fri, 15 Nov 2024 12:49:03 EST
 //   Source:    other_service.go
-//   Generator: https://github.com/bridgekitio/frodo
+//   Generator: https://github.com/bridgekit-io/frodo
 //
 import 'dart:async';
 import 'dart:convert';

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/bridgekitio/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/eventsource"
 	"github.com/nats-io/nats.go"
 	"github.com/nats-io/nats.go/jetstream"
 )

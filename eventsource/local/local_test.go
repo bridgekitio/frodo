@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bridgekitio/frodo/eventsource"
-	"github.com/bridgekitio/frodo/eventsource/local"
-	"github.com/bridgekitio/frodo/internal/testext"
-	"github.com/bridgekitio/frodo/internal/wait"
+	"github.com/bridgekit-io/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/eventsource/local"
+	"github.com/bridgekit-io/frodo/internal/testext"
+	"github.com/bridgekit-io/frodo/internal/wait"
 	"github.com/stretchr/testify/suite"
 )
 

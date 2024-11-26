@@ -3,9 +3,9 @@ package gen
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/example/multiservice/greetings"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/example/multiservice/greetings"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 func NewGreeterService(handler greetings.GreeterService, middleware ...services.MiddlewareFunc) *services.Service {

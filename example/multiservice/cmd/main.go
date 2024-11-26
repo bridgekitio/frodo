@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/example/multiservice/dismissal"
-	dismissgateway "github.com/bridgekitio/frodo/example/multiservice/dismissal/gen"
-	"github.com/bridgekitio/frodo/example/multiservice/greetings"
-	greetergateway "github.com/bridgekitio/frodo/example/multiservice/greetings/gen"
-	"github.com/bridgekitio/frodo/services"
-	"github.com/bridgekitio/frodo/services/gateways/apis"
+	"github.com/bridgekit-io/frodo/example/multiservice/dismissal"
+	dismissgateway "github.com/bridgekit-io/frodo/example/multiservice/dismissal/gen"
+	"github.com/bridgekit-io/frodo/example/multiservice/greetings"
+	greetergateway "github.com/bridgekit-io/frodo/example/multiservice/greetings/gen"
+	"github.com/bridgekit-io/frodo/services"
+	"github.com/bridgekit-io/frodo/services/gateways/apis"
 )
 
 func main() {

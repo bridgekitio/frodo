@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bridgekitio/frodo/parser"
+	"github.com/bridgekit-io/frodo/parser"
 	"github.com/stretchr/testify/suite"
 )
 

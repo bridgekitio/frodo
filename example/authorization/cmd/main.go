@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/bridgekitio/frodo/example/authorization/sensitive"
-	gen "github.com/bridgekitio/frodo/example/authorization/sensitive/gen"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/slices"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services"
-	"github.com/bridgekitio/frodo/services/gateways/apis"
+	"github.com/bridgekit-io/frodo/example/authorization/sensitive"
+	gen "github.com/bridgekit-io/frodo/example/authorization/sensitive/gen"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/slices"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services"
+	"github.com/bridgekit-io/frodo/services/gateways/apis"
 )
 
 func main() {

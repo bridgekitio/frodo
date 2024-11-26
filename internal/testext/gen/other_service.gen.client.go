@@ -2,15 +2,15 @@
 //
 //	Timestamp: Fri, 15 Nov 2024 12:49:03 EST
 //	Source:    other_service.go
-//	Generator: https://github.com/bridgekitio/frodo
+//	Generator: https://github.com/bridgekit-io/frodo
 package testext
 
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/internal/testext"
-	"github.com/bridgekitio/frodo/services/clients"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/internal/testext"
+	"github.com/bridgekit-io/frodo/services/clients"
 )
 
 // OtherServiceClient creates an RPC client that conforms to the OtherService interface, but delegates

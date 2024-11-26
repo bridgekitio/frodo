@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/bridgekitio/frodo/fail"
+	"github.com/bridgekit-io/frodo/fail"
 )
 
 type OtherServiceHandler struct {

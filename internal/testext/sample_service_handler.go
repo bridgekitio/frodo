@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/metadata"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/metadata"
 )
 
 type SampleServiceHandler struct {

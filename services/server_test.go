@@ -9,12 +9,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/bridgekitio/frodo/internal/quiet"
-	"github.com/bridgekitio/frodo/internal/testext"
-	gen "github.com/bridgekitio/frodo/internal/testext/gen"
-	"github.com/bridgekitio/frodo/services"
-	"github.com/bridgekitio/frodo/services/gateways/apis"
-	"github.com/bridgekitio/frodo/services/gateways/events"
+	"github.com/bridgekit-io/frodo/internal/quiet"
+	"github.com/bridgekit-io/frodo/internal/testext"
+	gen "github.com/bridgekit-io/frodo/internal/testext/gen"
+	"github.com/bridgekit-io/frodo/services"
+	"github.com/bridgekit-io/frodo/services/gateways/apis"
+	"github.com/bridgekit-io/frodo/services/gateways/events"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -301,7 +301,7 @@ func (suite *ServerSuite) TestPanic() {
 }
 
 // Prevent regression on the bug where HTTP middleware would fire twice for every single call.
-// https://github.com/bridgekitio/frodo/issues/2
+// https://github.com/bridgekit-io/frodo/issues/2
 func (suite *ServerSuite) TestHttpMiddlewareFireOnce() {
 	middlewareSequence := &testext.Sequence{}
 

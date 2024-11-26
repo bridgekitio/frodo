@@ -7,7 +7,7 @@ import (
 	"io"
 	"testing"
 
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/services"
 	"github.com/stretchr/testify/require"
 )
 

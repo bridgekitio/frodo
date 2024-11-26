@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/bridgekitio/frodo/internal/reflection"
+	"github.com/bridgekit-io/frodo/internal/reflection"
 )
 
 type contextKeyValues struct{}

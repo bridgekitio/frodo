@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bridgekitio/frodo/codec"
-	"github.com/bridgekitio/frodo/eventsource"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/codec"
+	"github.com/bridgekit-io/frodo/eventsource"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services"
 )
 
 // errorKeySuffix represents the thing we append to the end of the key we publish to the broker to indicate that this

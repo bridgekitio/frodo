@@ -1,4 +1,4 @@
-module github.com/bridgekitio/frodo
+module github.com/bridgekit-io/frodo
 
 go 1.23.0
 

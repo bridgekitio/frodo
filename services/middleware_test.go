@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bridgekitio/frodo/internal/testext"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/internal/testext"
+	"github.com/bridgekit-io/frodo/services"
 	"github.com/stretchr/testify/suite"
 )
 

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bridgekitio/frodo/fail"
+	"github.com/bridgekit-io/frodo/fail"
 	"github.com/stretchr/testify/suite"
 )
 

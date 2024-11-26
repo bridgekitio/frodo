@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/bridgekitio/frodo/codec"
-	"github.com/bridgekitio/frodo/metadata"
-	"github.com/bridgekitio/frodo/services"
+	"github.com/bridgekit-io/frodo/codec"
+	"github.com/bridgekit-io/frodo/metadata"
+	"github.com/bridgekit-io/frodo/services"
 	"github.com/rs/cors"
 )
 

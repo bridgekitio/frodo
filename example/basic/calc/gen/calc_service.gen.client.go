@@ -2,15 +2,15 @@
 //
 //	Timestamp: Mon, 03 Jul 2023 14:45:08 EDT
 //	Source:    ../basic/calc/calc_service.go
-//	Generator: https://github.com/bridgekitio/frodo
+//	Generator: https://github.com/bridgekit-io/frodo
 package calc
 
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/example/basic/calc"
-	"github.com/bridgekitio/frodo/fail"
-	"github.com/bridgekitio/frodo/services/clients"
+	"github.com/bridgekit-io/frodo/example/basic/calc"
+	"github.com/bridgekit-io/frodo/fail"
+	"github.com/bridgekit-io/frodo/services/clients"
 )
 
 // CalculatorServiceClient creates an RPC client that conforms to the CalculatorService interface, but delegates

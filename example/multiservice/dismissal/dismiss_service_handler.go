@@ -3,7 +3,7 @@ package dismissal
 import (
 	"context"
 
-	"github.com/bridgekitio/frodo/fail"
+	"github.com/bridgekit-io/frodo/fail"
 )
 
 type DismissServiceHandler struct{}
